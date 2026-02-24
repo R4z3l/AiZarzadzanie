@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RBMV Dashboard · FEDS.08.01 · IZ</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f;--bg2:#0e1118;--bg3:#141824;--bg4:#1a2030;
+  --acc:#3b82f6;--acc2:#06b6d4;--acc3:#8b5cf6;
+  --grn:#10b981;--yel:#f59e0b;--red:#f43f5e;--orn:#fb923c;
+  --txt:#e2e8f0;--txt2:#7c8db5;--txt3:#4a5578;
+  --brd:#1a2236;--brd2:#243060;--card:#0d1120;
+  --font:"IBM Plex Sans",sans-serif;--mono:"IBM Plex Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--txt);font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+.topbar{position:fixed;top:0;left:0;right:0;height:48px;background:var(--bg2);border-bottom:1px solid var(--brd);z-index:200;display:flex;align-items:center;padding:0 18px;gap:12px}
+.tb-logo{font-weight:700;font-size:1.05rem;color:var(--acc);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.tb-div{width:1px;height:20px;background:var(--brd2);flex-shrink:0}
+.tb-sub{font-size:.92rem;color:var(--txt2)}
+.tb-sub b{color:var(--acc2)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tb-date{font-family:var(--mono);font-size:.94rem;color:var(--txt3)}
+.tb-live{display:flex;align-items:center;gap:5px;font-size:.92rem;font-weight:700;letter-spacing:1.5px;color:var(--grn);background:#10b98114;border:1px solid #10b98128;padding:2px 8px;border-radius:20px}
+.tb-live-dot{width:5px;height:5px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btn-cfg{background:var(--bg3);border:1px solid var(--brd2);color:var(--txt2);border-radius:6px;padding:3px 11px;cursor:pointer;font-size:.96rem;font-family:var(--font);transition:all .12s}
+.btn-cfg:hover,.btn-cfg.on{border-color:var(--acc);color:var(--acc)}
+.btn-cfg.on{background:var(--acc);color:#fff}
+.wrap{display:flex;min-height:100vh;padding-top:48px}
+.sidebar{width:225px;background:var(--bg2);border-right:1px solid var(--brd);flex-shrink:0;overflow-y:auto;padding:10px 0;position:fixed;top:48px;bottom:0;left:0;z-index:100}
+.sb-label{padding:8px 15px 3px;font-size:1.05rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 15px;cursor:pointer;color:var(--txt2);font-size:.94rem;border-left:2px solid transparent;transition:all .1s;user-select:none}
+.sb-item:hover{background:var(--bg3);color:var(--txt)}
+.sb-item.act{background:linear-gradient(90deg,#3b82f610 0%,transparent);color:var(--acc);border-left-color:var(--acc);font-weight:600}
+.sb-sep{margin:5px 12px;border-top:1px solid var(--brd)}
+.sb-cnt{margin-left:auto;font-size:.92rem;font-weight:700;padding:1px 6px;border-radius:10px;background:var(--red);color:#fff}
+.sb-cnt.g{background:var(--grn)}.sb-cnt.y{background:var(--yel);color:#000}.sb-cnt.b{background:var(--acc)}
+.cfg-overlay{display:none;position:fixed;inset:0;z-index:300;background:#00000090;backdrop-filter:blur(2px)}
+.cfg-overlay.on{display:flex;justify-content:flex-end;align-items:stretch}
+.cfg-drawer{width:400px;background:var(--bg2);border-left:1px solid var(--brd2);display:flex;flex-direction:column;box-shadow:-12px 0 40px #00000060}
+.cfg-hdr{background:var(--bg3);border-bottom:1px solid var(--brd);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cfg-hdr-t{font-size:.96rem;font-weight:700;display:flex;align-items:center;gap:7px}
+.cfg-x{background:var(--bg2);border:1px solid var(--brd2);color:var(--txt2);cursor:pointer;font-size:.91rem;border-radius:5px;padding:2px 9px;font-family:var(--font)}
+.cfg-x:hover{color:var(--red);border-color:var(--red)}
+.cfg-tabs{display:flex;background:var(--bg3);border-bottom:1px solid var(--brd);flex-shrink:0;overflow-x:auto}
+.cfg-tab{padding:8px 14px;font-size:.96rem;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .1s;user-select:none;white-space:nowrap}
+.cfg-tab:hover{color:var(--txt)}.cfg-tab.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+.cfg-body{flex:1;overflow-y:auto;padding:14px 17px}
+.cfg-pane{display:none}.cfg-pane.on{display:block}
+.cfg-sec{margin-bottom:18px}
+.cfg-sec-t{font-size:.94rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--brd)}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:8px}
+.cfg-row label{font-size:1rem;color:var(--txt2);flex:1}
+.cfg-num{width:64px;background:var(--bg3);border:1px solid var(--brd2);color:var(--txt);border-radius:5px;padding:3px 7px;font-size:.81rem;font-family:var(--mono);text-align:center;outline:none}
+.cfg-num:focus{border-color:var(--acc)}
+.cfg-sel{background:var(--bg3);border:1px solid var(--brd2);color:var(--txt);border-radius:5px;padding:5px 8px;font-size:.91rem;font-family:var(--font);outline:none;width:100%}
+.cfg-sel:focus{border-color:var(--acc)}
+.dz-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
+.dz-pill{padding:4px 13px;border-radius:20px;border:1px solid var(--brd2);color:var(--txt2);font-size:.96rem;font-weight:600;cursor:pointer;transition:all .1s;user-select:none}
+.dz-pill:hover{border-color:var(--acc);color:var(--acc)}.dz-pill.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.op-assign{display:flex;flex-direction:column;gap:5px;max-height:400px;overflow-y:auto}
+.op-arow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;background:var(--bg3);border:1px solid var(--brd);border-radius:5px}
+.op-aname{font-family:var(--mono);font-size:.94rem;color:var(--acc2);min-width:90px}
+.cfg-info{font-size:.94rem;color:var(--txt3);line-height:1.55;padding:8px 10px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;margin-bottom:10px}
+.cfg-ftr{padding:13px 17px;border-top:1px solid var(--brd);flex-shrink:0;background:var(--bg3)}
+/* aRPK category editor */
+.arpk-cat-list{display:flex;flex-direction:column;gap:7px}
+.arpk-cat-row{background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:9px 12px}
+.arpk-cat-hdr{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.arpk-cat-code{font-family:var(--mono);font-size:.92rem;font-weight:700;color:var(--acc2);min-width:24px}
+.arpk-cat-name{font-size:.91rem;font-weight:600;flex:1}
+.arpk-cat-badge{font-size:.92rem;padding:1px 7px;border-radius:3px;background:var(--acc);color:#fff;white-space:nowrap}
+.arpk-cat-desc{font-size:.92rem;color:var(--txt3);line-height:1.45;margin-bottom:7px}
+.arpk-cat-ctl{display:flex;align-items:center;gap:7px}
+.arpk-cat-ctl label{font-size:.92rem;color:var(--txt2)}
+.arpk-cat-ctl input[type=range]{flex:1;accent-color:var(--acc)}
+.arpk-cat-val{font-family:var(--mono);font-size:.94rem;font-weight:700;color:var(--acc);min-width:38px;text-align:right}
+.main{flex:1;margin-left:225px;padding:20px 22px;min-height:100vh}
+.page{display:none;animation:fi .15s ease}.page.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--brd)}
+.ph-t{font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.ph-icon{width:27px;height:27px;border-radius:7px;background:var(--bg3);border:1px solid var(--brd2);display:flex;align-items:center;justify-content:center;font-size:.96rem}
+.ph-sub{font-size:.92rem;color:var(--txt2);margin-top:2px}
+.xbar{display:flex;gap:5px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:9px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.b::before{background:var(--acc)}.kpi.g::before{background:var(--grn)}.kpi.r::before{background:var(--red)}
+.kpi.y::before{background:var(--yel)}.kpi.c::before{background:var(--acc2)}.kpi.p::before{background:var(--acc3)}.kpi.o::before{background:var(--orn)}
+.kpi-l{font-size:.92rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:5px}
+.kpi-v{font-size:1.45rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi.b .kpi-v{color:var(--acc)}.kpi.g .kpi-v{color:var(--grn)}.kpi.r .kpi-v{color:var(--red)}
+.kpi.y .kpi-v{color:var(--yel)}.kpi.c .kpi-v{color:var(--acc2)}.kpi.p .kpi-v{color:var(--acc3)}.kpi.o .kpi-v{color:var(--orn)}
+.kpi-s{font-size:.96rem;color:var(--txt3);margin-top:3px}
+.fbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:11px;padding:8px 12px;background:var(--bg3);border:1px solid var(--brd);border-radius:7px}
+.fbar input,.fbar select{background:var(--bg2);border:1px solid var(--brd2);color:var(--txt);border-radius:5px;padding:4px 8px;font-size:.81rem;outline:none;font-family:var(--font)}
+.fbar input:focus,.fbar select:focus{border-color:var(--acc)}
+.flbl{font-size:.94rem;color:var(--txt2)}
+.twrap{background:var(--card);border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.ttb{padding:8px 12px;border-bottom:1px solid var(--brd);display:flex;gap:7px;align-items:center;flex-wrap:wrap;background:var(--bg3)}
+.ttb input,.ttb select{background:var(--bg2);border:1px solid var(--brd2);color:var(--txt);border-radius:5px;padding:4px 8px;font-size:.81rem;outline:none;font-family:var(--font)}
+.t-info{margin-left:auto;font-size:.81rem;color:var(--txt3);font-family:var(--mono)}
+.tbl{width:100%;border-collapse:collapse;font-size:1.05rem}
+.tbl th{background:var(--bg3);color:var(--txt2);padding:7px 10px;text-align:left;font-size:.92rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--brd);white-space:nowrap}
+.tbl td{padding:6px 10px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:#ffffff04;cursor:pointer}
+.clamp{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mono{font-family:var(--mono);font-size:.92rem}
+.nr{text-align:right;font-variant-numeric:tabular-nums}
+.of{overflow-x:auto}
+.pager{display:flex;gap:3px;align-items:center;padding:7px 12px;border-top:1px solid var(--brd);background:var(--bg3);flex-wrap:wrap}
+.pager button{background:var(--bg2);border:1px solid var(--brd2);color:var(--txt2);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:.94rem;font-family:var(--mono);transition:all .1s}
+.pager button:hover{color:var(--acc);border-color:var(--acc)}
+.pager button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.pager button:disabled{opacity:.3;cursor:default}
+.pg-info{margin-left:auto;font-size:.81rem;color:var(--txt3);font-family:var(--mono)}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:.92rem;font-weight:700;white-space:nowrap}
+.bg{background:#10b98114;color:var(--grn);border:1px solid #10b98128}
+.br{background:#f43f5e14;color:var(--red);border:1px solid #f43f5e28}
+.by{background:#f59e0b14;color:var(--yel);border:1px solid #f59e0b28}
+.bb{background:#3b82f614;color:var(--acc);border:1px solid #3b82f628}
+.bc{background:#06b6d414;color:var(--acc2);border:1px solid #06b6d428}
+.bp{background:#8b5cf614;color:var(--acc3);border:1px solid #8b5cf628}
+.bo{background:#fb923c14;color:var(--orn);border:1px solid #fb923c28}
+.bgr{background:var(--bg3);color:var(--txt2);border:1px solid var(--brd2)}
+.prog{background:var(--bg3);border-radius:3px;height:5px;min-width:60px;overflow:hidden}
+.prog-b{height:5px;border-radius:3px;transition:width .4s}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px}
+.ccard{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:13px 15px}
+.ccard.full{grid-column:1/-1}
+.ctitle{font-size:.81rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--brd);margin-bottom:13px}
+.tab{padding:6px 13px;cursor:pointer;font-size:.92rem;color:var(--txt2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .1s;user-select:none}
+.tab:hover{color:var(--txt)}.tab.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+.mpills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px}
+.mp{padding:3px 10px;border-radius:20px;font-size:.92rem;cursor:pointer;border:1px solid var(--brd2);color:var(--txt2);font-family:var(--mono);transition:all .1s;user-select:none}
+.mp:hover{border-color:var(--acc);color:var(--acc)}.mp.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+/* PROJECT METRIC CARD */
+.proj-metric{background:var(--card);border:1px solid var(--brd);border-radius:9px;margin-bottom:10px;overflow:hidden}
+.pm-hdr{padding:13px 15px;background:var(--bg3);border-bottom:1px solid var(--brd);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;cursor:pointer}
+.pm-hdr:hover{background:var(--bg4)}
+.pm-nr{font-family:var(--mono);font-size:.81rem;color:var(--txt3)}
+.pm-name{font-size:1.05rem;font-weight:600}
+.pm-badges{display:flex;gap:5px;flex-shrink:0;align-items:center;flex-wrap:wrap}
+.pm-body{display:none;padding:15px}
+.pm-body.on{display:block}
+.pm-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:14px}
+.pm-kpi{background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:9px 11px}
+.pm-kpi-l{font-size:1.05rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:3px}
+.pm-kpi-v{font-size:1rem;font-weight:700}
+.pm-section{margin-bottom:13px}
+.pm-sec-t{font-size:.94rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.pm-sec-t::after{content:"";flex:1;height:1px;background:var(--brd)}
+/* aRPK breakdown in metric */
+.arpk-breakdown{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:7px}
+.arpk-cat-item{background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:9px 11px}
+.arpk-ci-hdr{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.arpk-ci-code{font-family:var(--mono);font-size:.81rem;font-weight:700;color:var(--acc2)}
+.arpk-ci-name{font-size:.96rem;font-weight:600;flex:1}
+.arpk-ci-pts{font-family:var(--mono);font-size:.96rem;font-weight:700;min-width:32px;text-align:right}
+.arpk-ci-max{font-size:.92rem;color:var(--txt3)}
+.arpk-ci-state{font-size:.92rem;color:var(--txt2);margin-bottom:5px;line-height:1.4}
+.arpk-ci-bar{background:var(--bg2);border-radius:2px;height:3px;overflow:hidden;margin-top:4px}
+.arpk-ci-fill{height:3px;border-radius:2px}
+/* Wskazniki table */
+.wsk-tbl{width:100%;border-collapse:collapse;font-size:.94rem;margin-top:7px}
+.wsk-tbl th{background:var(--bg2);color:var(--txt3);padding:5px 8px;text-align:left;font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--brd)}
+.wsk-tbl td{padding:5px 8px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.wsk-tbl tr:last-child td{border-bottom:none}
+.wsk-pct{display:flex;align-items:center;gap:5px}
+.wsk-pct-bar{width:50px;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;flex-shrink:0}
+.wsk-pct-fill{height:3px;border-radius:2px}
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:#00000099;z-index:400;backdrop-filter:blur(3px)}
+.modal-ov.on{display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg2);border:1px solid var(--brd2);border-radius:10px;width:740px;max-width:94vw;max-height:88vh;overflow-y:auto;padding:19px 21px;position:relative}
+.modal-x{position:absolute;top:10px;right:12px;background:var(--bg3);border:1px solid var(--brd2);color:var(--txt2);cursor:pointer;font-size:.94rem;border-radius:4px;padding:2px 8px;font-family:var(--font)}
+.modal-x:hover{color:var(--red);border-color:var(--red)}
+.modal-t{font-size:1rem;font-weight:700;margin-bottom:13px;padding-right:50px}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dr{background:var(--bg3);border-radius:5px;padding:6px 10px;display:flex;flex-direction:column;gap:2px}
+.dr.full{grid-column:1/-1}
+.dk{font-size:1.05rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.dv{font-size:.94rem;color:var(--txt);font-weight:500}
+/* Postep cards */
+.pcard{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;margin-bottom:7px;cursor:pointer;transition:border-color .12s}
+.pcard:hover{border-color:var(--brd2)}
+.pcard.late{border-left:3px solid var(--red)}.pcard.ok{border-left:3px solid var(--grn)}
+.pcard-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}
+.pcard-nr{font-family:var(--mono);font-size:.81rem;color:var(--txt3)}
+.pcard-nm{font-size:.96rem;font-weight:600}
+.pcard-meta{font-size:.92rem;color:var(--txt2);display:flex;gap:9px;flex-wrap:wrap;margin-bottom:7px}
+.pcard-meta b{color:var(--txt)}
+.zd{display:none;margin-top:7px;border-top:1px solid var(--brd);padding-top:7px}
+.zd.on{display:block}
+.zd-row{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:.94rem}
+/* Op grid */
+.op-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:9px;margin-bottom:14px}
+.opcard{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .12s}
+.opcard:hover{border-color:var(--acc);transform:translateY(-1px)}
+.opcard-nm{font-family:var(--mono);font-weight:600;color:var(--acc2);font-size:.96rem;margin-bottom:4px}
+.opcard-dz{font-size:.71rem;color:var(--txt3);margin-bottom:7px}
+.op-stats{display:flex;gap:11px;flex-wrap:wrap}
+.opst{text-align:center}.opst-v{font-size:1.15rem;font-weight:700}.opst-l{font-size:.56rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px}
+/* aRPK */
+.arpk-bar{display:flex;align-items:center;gap:4px}
+.arpk-score{font-family:var(--mono);font-size:.91rem;font-weight:700;min-width:28px}
+.arpk-prog{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;min-width:40px}
+.arpk-fill{height:4px;border-radius:2px}
+.alert{padding:8px 12px;border-radius:6px;font-size:.91rem;margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.ai{background:#3b82f610;border:1px solid #3b82f628;color:var(--acc)}
+.aw{background:#f59e0b10;border:1px solid #f59e0b28;color:var(--yel)}
+.sec{font-size:.91rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 9px;display:flex;align-items:center;gap:7px}
+.sec::after{content:"";flex:1;height:1px;background:var(--brd)}
+.empty{text-align:center;padding:32px;color:var(--txt3);font-size:.96rem}
+.btn{background:var(--acc);color:#fff;border:none;border-radius:5px;padding:4px 12px;cursor:pointer;font-size:.81rem;font-weight:600;font-family:var(--font);transition:opacity .1s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-sm{padding:2px 8px;font-size:.92rem}
+.btn-out{background:transparent;border:1px solid var(--brd2);color:var(--txt2)}
+.btn-out:hover{border-color:var(--acc);color:var(--acc);background:transparent;opacity:1}
+.hidden{display:none!important}
+/* IMPORT MODULE */
+.imp-drop{border:2px dashed var(--brd2);border-radius:10px;padding:40px 30px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)}
+.imp-drop:hover,.imp-drop.over{border-color:var(--acc);background:#3b82f608}
+.imp-drop-icon{font-size:2rem;margin-bottom:10px;opacity:.5}
+.imp-drop-t{font-size:.96rem;font-weight:600;margin-bottom:5px}
+.imp-drop-s{font-size:.96rem;color:var(--txt2)}
+.imp-sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:14px 0}
+.imp-sheet{background:var(--bg3);border:1px solid var(--brd);border-radius:7px;padding:10px 13px}
+.imp-sheet.ok{border-color:var(--grn)}
+.imp-sheet.warn{border-color:var(--yel)}
+.imp-sheet.skip{opacity:.45}
+.imp-sheet-name{font-family:var(--mono);font-size:.96rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.imp-sheet-info{font-size:.91rem;color:var(--txt2)}
+.imp-preview{background:var(--card);border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.imp-prev-hdr{background:var(--bg3);padding:9px 14px;font-size:.96rem;font-weight:700;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--brd)}
+.imp-delta{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px}
+.imp-delta-item{background:var(--bg3);border-radius:6px;padding:7px 12px;font-size:.96rem;display:flex;flex-direction:column;gap:2px;min-width:130px}
+.imp-delta-l{font-size:1.05rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px}
+.imp-delta-v{font-weight:700;font-family:var(--mono)}
+.imp-log{font-family:var(--mono);font-size:.91rem;color:var(--txt2);background:var(--bg3);border-radius:6px;padding:10px 13px;max-height:180px;overflow-y:auto;line-height:1.7;margin-bottom:12px}
+.imp-log .ok{color:var(--grn)}.imp-log .warn{color:var(--yel)}.imp-log .info{color:var(--acc)}
+.imp-prog{height:3px;background:var(--brd);border-radius:3px;overflow:hidden;margin:8px 0}
+.imp-prog-b{height:3px;background:var(--acc);border-radius:3px;transition:width .3s}
+@media(max-width:800px){.cgrid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0}.dg{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="tb-logo"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="#3b82f6"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="#06b6d4" opacity=".7"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="#8b5cf6" opacity=".7"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="#3b82f6" opacity=".4"/></svg>RBMV Dashboard</div>
+  <div class="tb-div"></div>
+  <div class="tb-sub">FEDS.08.01 · IZ · <b id="tb-dzial">Wszystkie działy</b> · <b id="tb-pcnt">—</b> projektów</div>
+  <div class="tb-right"><div class="tb-date" id="tb-date"></div><button class="btn-cfg" onclick="saveState()" style="background:var(--acc);color:#fff;border:none" title="Wygeneruj nowy plik HTML z aktualnymi danymi">💾 Zapisz stan</button><button class="btn-cfg" onclick="clearData()" style="color:var(--red)" title="Wyczyść dane — kod i pracownicy zostają">🗑 Wyczyść</button><button class="btn-cfg" id="btn-cfg" onclick="toggleCfg()">⚙ Konfiguracja</button><div class="tb-live"><div class="tb-live-dot"></div>LIVE</div></div>
+</div>
+
+<div class="cfg-overlay" id="cfgOverlay" onclick="overlayClick(event)">
+  <div class="cfg-drawer">
+    <div class="cfg-hdr"><div class="cfg-hdr-t">⚙ Konfiguracja systemu</div><button class="cfg-x" onclick="toggleCfg()">✕ Zamknij</button></div>
+    <div class="cfg-tabs">
+      <div class="cfg-tab on" onclick="showCfgTab(this,'c-dzialy')">Działy</div>
+      <div class="cfg-tab" onclick="showCfgTab(this,'c-personel')">Personel</div>
+      <div class="cfg-tab" onclick="showCfgTab(this,'c-parametry')">Parametry</div>
+      <div class="cfg-tab" onclick="showCfgTab(this,'c-arpk-cfg')">aRPK Kategorie</div>
+    </div>
+    <div class="cfg-body">
+      <div class="cfg-pane on" id="c-dzialy">
+        <div class="cfg-sec"><div class="cfg-sec-t">🏢 Aktywne działy</div>
+          <p style="font-size:.96rem;color:var(--txt2);margin-bottom:9px">Wybór filtruje dane we wszystkich modułach:</p>
+          <div class="dz-pills"><div class="dz-pill on" onclick="toggleDzial('all')" id="dp-all">Wszystkie</div><div class="dz-pill" onclick="toggleDzial('1')" id="dp-1">Dział EFS I</div><div class="dz-pill" onclick="toggleDzial('2')" id="dp-2">Dział EFS II</div><div class="dz-pill" onclick="toggleDzial('3')" id="dp-3">Dział EFS III</div></div>
+        </div>
+      </div>
+      <div class="cfg-pane" id="c-personel">
+        <div class="cfg-sec">
+          <div class="cfg-sec-t">&#x1F5C2; Słownik pracowników</div>
+          <p style="font-size:.94rem;color:var(--txt2);margin-bottom:12px">Pracownicy są wczytywani w sekcji <strong>Dane</strong>. Plik Pracownicy.xlsx z kolumnami: <span style="font-family:var(--mono);font-size:.84rem;color:var(--acc2)">Pracownik &middot; Opiekun &middot; Dział</span></p>
+          <div id="per-status" style="font-size:.84rem;color:var(--txt2);margin-bottom:10px;min-height:18px"></div>
+          <div id="per-list" style="display:flex;flex-direction:column;gap:4px;max-height:360px;overflow-y:auto"></div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-out" onclick="perAddRow()">+ Dodaj ręcznie</button>
+            <button class="btn btn-sm btn-out" style="margin-left:auto;color:var(--red)" onclick="perClear()">&#x2715; Wyczyść wszystko</button>
+          </div>
+          <div id="per-add-form" style="display:none;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:10px;margin-top:8px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:7px">
+              <input class="cfg-sel" id="per-f-skrot" placeholder="Login (np. JOASAW2)" style="font-family:var(--mono)">
+              <input class="cfg-sel" id="per-f-nazwisko" placeholder="Nazwisko">
+              <input class="cfg-sel" id="per-f-imie" placeholder="Imię">
+              <input class="cfg-sel" id="per-f-dzial" placeholder="Dział (np. Dział Projektów EFS I)">
+            </div>
+            <button class="btn btn-sm" onclick="perAddManual()">Dodaj</button>
+            <button class="btn btn-sm btn-out" onclick="document.getElementById('per-add-form').style.display='none'">Anuluj</button>
+          </div>
+        </div>
+      </div>
+      <div class="cfg-pane" id="c-parametry">
+        <div class="cfg-sec"><div class="cfg-sec-t">📈 Postęp finansowy</div>
+          <select class="cfg-sel" id="cfg-postep-od" style="margin-bottom:10px" onchange="cfgChange()"><option value="projekt">Od daty rozpoczęcia projektu</option><option value="umowa">Od daty podpisania umowy</option></select>
+          <div class="cfg-row"><label>Próg opóźnienia (pp):</label><input type="number" class="cfg-num" id="cfg-opozn" value="20" min="5" max="50" onchange="cfgChange()"></div>
+        </div>
+        <div class="cfg-sec"><div class="cfg-sec-t">⏱ Terminy weryfikacji WNP</div>
+          <div class="cfg-row"><label>I wersja wniosku (dni rob.):</label><input type="number" class="cfg-num" id="cfg-d1" value="20" onchange="cfgChange()"></div>
+          <div class="cfg-row"><label>Kolejna wersja (dni rob.):</label><input type="number" class="cfg-num" id="cfg-dn" value="15" onchange="cfgChange()"></div>
+          <div class="cfg-row"><label>Termin poprawki (dni rob.):</label><input type="number" class="cfg-num" id="cfg-dp" value="5" onchange="cfgChange()"></div>
+        </div>
+      </div>
+      <div class="cfg-pane" id="c-arpk-cfg">
+        <div class="cfg-info">⚙ Edytuj wagi kategorii ryzyka aRPK. Zmiana istotności dynamicznie przelicza scoring wszystkich projektów. Suma maksymalnych wag oryg.: 105 pkt.</div>
+        <div class="arpk-cat-list" id="arpk-cat-editor"></div>
+      </div>
+    </div>
+    <div class="cfg-ftr"><button class="btn" style="width:100%" onclick="applyConfig()">✓ Zastosuj i zamknij</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+<nav class="sidebar">
+  <div class="sb-label">Główne</div>
+  <div class="sb-item act" onclick="showPage('overview')" id="nav-overview"><span>⊞</span>Przegląd ogólny</div>
+  <div class="sb-sep"></div>
+  <div class="sb-label">Wnioski o płatność</div>
+  <div class="sb-item" onclick="showPage('wer')" id="nav-wer"><span>◎</span>W weryfikacji<span class="sb-cnt" id="snav-wer">—</span></div>
+  <div class="sb-item" onclick="showPage('pop')" id="nav-pop"><span>↩</span>W poprawie<span class="sb-cnt y" id="snav-pop">—</span></div>
+  <div class="sb-item" onclick="showPage('zat')" id="nav-zat"><span>✓</span>Zatwierdzone<span class="sb-cnt g" id="snav-zat">—</span></div>
+  <div class="sb-item" onclick="showPage('rpk')" id="nav-rpk"><span>⬡</span>RPK</div>
+  <div class="sb-sep"></div>
+  <div class="sb-label">Postęp projektów</div>
+  <div class="sb-item" onclick="showPage('postep')" id="nav-postep"><span>▲</span>Postęp finansowy</div>
+  <div class="sb-item" onclick="showPage('rzeczowy')" id="nav-rzeczowy"><span>◆</span>Postęp rzeczowy</div>
+  <div class="sb-sep"></div>
+  <div class="sb-label">Harmonogramy</div>
+  <div class="sb-item" onclick="showPage('hp')" id="nav-hp"><span>▦</span>Harmonogramy<span class="sb-cnt b" id="snav-hp">—</span></div>
+  <div class="sb-sep"></div>
+  <div class="sb-label">Zespół</div>
+  <div class="sb-item" onclick="showPage('opiekuni')" id="nav-opiekuni"><span>◉</span>Opiekunowie</div>
+  <div class="sb-sep"></div>
+  <div class="sb-label">Dane</div>
+  <div class="sb-item" onclick="showPage('import')" id="nav-import"><span>⬆</span>Wczytaj dane</div>
+  <div class="sb-item" onclick="showPage('arpk')" id="nav-arpk"><span>⚠</span>Analiza aRPK</div>
+  <div class="sb-item" onclick="showPage('metryki')" id="nav-metryki"><span>📋</span>Metryki projektów</div>
+</nav>
+
+<main class="main">
+
+<!-- OVERVIEW -->
+<div class="page on" id="page-overview">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">⊞</div>Przegląd ogólny</div><div class="ph-sub">Stan na <span id="ov-date"></span> · <span id="ov-dzial">Wszystkie działy</span></div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div class="kgrid" id="kpi-ov"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px">
+    <div class="ccard"><div class="ctitle">Wnioski wg statusu</div><div style="position:relative;height:185px"><canvas id="ch-st"></canvas></div></div>
+    <div class="ccard"><div class="ctitle">Zatwierdzone WNP miesięcznie</div><div style="overflow-x:auto"><div id="ch-mies-inner" style="position:relative;height:185px"><canvas id="ch-mies"></canvas></div></div></div>
+  </div>
+  <div class="ccard" style="margin-bottom:14px">
+    <div class="ctitle" style="display:flex;align-items:center;justify-content:space-between">
+      <span>⚡ Projekty wymagające działania — przekroczone i zbliżające się terminy</span>
+      <span id="ov-alerts-counts" style="font-size:.75rem;font-weight:400;color:var(--txt2)"></span>
+    </div>
+    <div id="ov-alerts"></div>
+  </div>
+</div>
+
+<!-- W WERYFIKACJI -->
+<div class="page" id="page-wer">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">◎</div>Wnioski w bieżącej weryfikacji</div><div class="ph-sub">Statusy: Złożony, W trakcie weryfikacji · Terminy wg konfiguracji · Scoring aRPK</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="exportCSV('wer')">↓ CSV</button><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fw-dz" onchange="renderWer()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><span class="flbl">Szukaj:</span><input id="fw-s" placeholder="Nr projektu / beneficjent…" style="width:225px" oninput="renderWer()"><span class="flbl">Opiekun:</span><select id="fw-op" onchange="renderWer()"><option value="">Wszyscy opiekunowie</option></select><span class="flbl">Status:</span><select id="fw-st" onchange="renderWer()"><option value="">Wszystkie</option><option>Złożony</option><option>W trakcie weryfikacji</option></select><span class="flbl">Termin:</span><select id="fw-term" onchange="renderWer()"><option value="">Wszystkie</option><option value="ok">W terminie</option><option value="late">Przekroczony</option></select><span class="flbl">aRPK:</span><select id="fw-arpk" onchange="renderWer()"><option value="">Wszystkie</option><option value="niskie">Niskie</option><option value="srednie">Średnie</option><option value="wysokie">Wysokie</option><option value="krytyczne">Krytyczne</option></select></div>
+  <div class="kgrid" id="kpi-wer"></div>
+  <div class="twrap"><div class="ttb"><span class="t-info" id="info-wer">—</span></div><div class="of"><table class="tbl" id="tbl-wer"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Nr wniosku</th><th>Wersja</th><th>Status</th><th>Złożony</th><th>Termin</th><th>Dni roboczych</th><th class="nr">Zaliczka</th><th class="nr">Refundacja</th><th class="nr">Wyd.kwal.</th><th class="nr">Dofin.</th><th class="nr">Wkład wł.</th><th>Opiekun</th><th>Ryzyko aRPK</th></tr></thead><tbody id="tb-wer"></tbody></table></div><div class="pager" id="pg-wer"></div></div>
+</div>
+
+<!-- W POPRAWIE -->
+<div class="page" id="page-pop">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">↩</div>Wnioski w poprawie</div><div class="ph-sub">Statusy: Do poprawy, Poprawiany · Limit: <span id="pop-lim">5</span> dni rob.</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="exportCSV('pop')">↓ CSV</button><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fp-dz" onchange="renderPop()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fp-s" placeholder="Szukaj…" style="width:200px" oninput="renderPop()"><select id="fp-op" onchange="renderPop()"><option value="">Wszyscy opiekunowie</option></select><select id="fp-fl" onchange="renderPop()"><option value="">Wszystkie</option><option value="ok">W terminie</option><option value="late">Przeterminowane</option></select></div>
+  <div class="kgrid" id="kpi-pop"></div>
+  <div class="twrap"><div class="ttb"><span class="t-info" id="info-pop">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Nr wniosku</th><th>Wersja</th><th>Status</th><th>Złożony</th><th>Czas poprawy</th><th>Ocena</th><th class="nr">Wyd.kwal.</th><th>Opiekun</th><th>Ryzyko aRPK</th></tr></thead><tbody id="tb-pop"></tbody></table></div><div class="pager" id="pg-pop"></div></div>
+</div>
+
+<!-- ZATWIERDZONE -->
+<div class="page" id="page-zat">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">✓</div>Zatwierdzone wnioski o płatność</div><div class="ph-sub">Dynamiczny wybór okresu · Pełne dane finansowe</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="exportCSV('zat')">↓ CSV</button><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div id="mpills-zat" class="mpills"></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fz-dz" onchange="renderZat()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fz-s" placeholder="Nr projektu / beneficjent…" style="width:215px" oninput="renderZat()"><select id="fz-op" onchange="renderZat()"><option value="">Wszyscy opiekunowie</option></select><select id="fz-cert" onchange="renderZat()"><option value="">Wszystkie</option><option value="T">Certyfikowane</option><option value="N">Niecertyfikowane</option></select></div>
+  <div class="kgrid" id="kpi-zat"></div>
+  <div class="twrap"><div class="ttb"><span class="t-info" id="info-zat">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Nr wniosku</th><th>Data zatwierdzenia</th><th>Certyfikowane</th><th>Korekty</th><th class="nr">Wyd.kwal.</th><th class="nr">Wyd.uznane</th><th class="nr">Dofin.</th><th class="nr">Zaliczka</th><th class="nr">Refundacja</th><th>Opiekun</th></tr></thead><tbody id="tb-zat"></tbody></table></div><div class="pager" id="pg-zat"></div></div>
+</div>
+
+<!-- RPK -->
+<div class="page" id="page-rpk">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">⬡</div>Roczny Plan Kontroli (RPK)</div><div class="ph-sub">Wydatki I wersja vs wersja ostatnia · Odchylenia · Scoring aRPK</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="exportCSV('rpk')">↓ CSV</button></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fr-dz" onchange="renderRpk()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fr-s" placeholder="Szukaj projektu…" style="width:200px" oninput="renderRpk()"><select id="fr-op" onchange="renderRpk()"><option value="">Wszyscy opiekunowie</option></select><select id="fr-fl" onchange="renderRpk()"><option value="">Wszystkie</option><option value="kor">Z korektą</option><option value="bez">Bez korekty</option></select></div>
+  <div class="kgrid" id="kpi-rpk"></div>
+  <div class="twrap"><div class="ttb"><span class="t-info" id="info-rpk">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Nr wniosku (baza)</th><th>Wersji</th><th class="nr">Wyd.kwal. v1</th><th class="nr">Wyd.kwal. ostatnia</th><th class="nr">Różnica</th><th>Różnica %</th><th>Opiekun</th><th>Ryzyko aRPK</th></tr></thead><tbody id="tb-rpk"></tbody></table></div><div class="pager" id="pg-rpk"></div></div>
+</div>
+
+<!-- POSTEP FINANSOWY -->
+<div class="page" id="page-postep">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">▲</div>Postęp finansowy projektów</div><div class="ph-sub">Podstawa: <span id="postep-od-lbl">—</span> · Ryczałtowe wyłączone · Kliknij projekt → zadania</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fpost-dz" onchange="renderPostep()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fpost-s" placeholder="Nr projektu / beneficjent…" style="width:200px" oninput="renderPostep()"><select id="fpost-fl" onchange="renderPostep()"><option value="">Wszystkie</option><option value="late">Opóźnione</option><option value="ok">Terminowe</option></select><select id="fpost-op" onchange="renderPostep()"><option value="">Wszyscy opiekunowie</option></select></div>
+  <div class="kgrid" id="kpi-postep"></div>
+  <div id="postep-list"></div>
+  <div class="pager" id="pg-postep"></div>
+</div>
+
+<!-- POSTEP RZECZOWY -->
+<div class="page" id="page-rzeczowy">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">◆</div>Postęp rzeczowy projektów</div><div class="ph-sub">Wskaźniki produktu i rezultatu · Ocena 0-50 pkt wg rozkładu populacji · 211 projektów z danymi</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="frz-dz" onchange="renderRzeczowy()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="frz-s" placeholder="Nr projektu / beneficjent…" style="width:200px" oninput="renderRzeczowy()"><select id="frz-op" onchange="renderRzeczowy()"><option value="">Wszyscy opiekunowie</option></select><select id="frz-fl" onchange="renderRzeczowy()"><option value="">Wszystkie</option><option value="high">Wysoka realizacja ≥70%</option><option value="med">Średnia 30-70%</option><option value="low">Niska ≤30%</option><option value="fin">Zakończone</option></select><span class="flbl">Wskaźniki:</span><select id="frz-wsk" onchange="renderRzeczowy()"><option value="">Wszystkie</option><option value="P">Produktu</option><option value="R">Rezultatu</option></select></div>
+  <div class="kgrid" id="kpi-rzeczowy"></div>
+  <div id="rzeczowy-list"></div>
+  <div class="pager" id="pg-rzeczowy"></div>
+</div>
+
+<!-- HARMONOGRAMY -->
+<div class="page" id="page-hp">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">▦</div>Harmonogramy płatności</div><div class="ph-sub">HP w weryfikacji (max 5 dni rob.) · Zatwierdzone · Symulacja terminów</div></div></div>
+  <div class="tabs"><div class="tab on" onclick="showHpTab(this,'h-wer')">W weryfikacji</div><div class="tab" onclick="showHpTab(this,'h-zat')">Zatwierdzone</div><div class="tab" onclick="showHpTab(this,'h-sim')">Symulacja</div></div>
+  <div id="h-wer">
+    <div class="kgrid" id="kpi-hwer"></div>
+    <div class="twrap"><div class="ttb"><input id="fhw-s" placeholder="Szukaj…" style="width:180px" oninput="renderHWer()"><span class="flbl" style="margin-left:4px">Dział:</span><select id="fhw-dz" onchange="renderHWer()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><span class="t-info" id="info-hwer">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Wersja HP</th><th>Status</th><th>Data przesłania</th><th>Dni roboczych</th><th class="nr">Wyd.kwal.</th><th class="nr">Zaliczka</th><th class="nr">Refundacja</th></tr></thead><tbody id="tb-hwer"></tbody></table></div><div class="pager" id="pg-hwer"></div></div>
+  </div>
+  <div id="h-zat" class="hidden">
+    <div class="kgrid" id="kpi-hzat"></div>
+    <div class="twrap"><div class="ttb"><input id="fhz-s" placeholder="Szukaj…" style="width:180px" oninput="renderHZat()"><span class="flbl" style="margin-left:4px">Dział:</span><select id="fhz-dz" onchange="renderHZat()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><span class="t-info" id="info-hzat">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Wersja HP</th><th>Data przesłania</th><th>Data zatwierdzenia</th><th class="nr">Wyd.kwal.</th><th class="nr">Zaliczka</th><th class="nr">Refundacja</th></tr></thead><tbody id="tb-hzat"></tbody></table></div><div class="pager" id="pg-hzat"></div></div>
+  </div>
+  <div id="h-sim" class="hidden">
+    <div class="alert ai">ℹ Symulacja estymuje terminy przyszłych WNP na podstawie historycznych odstępów między zatwierdzeniami.</div>
+    <div class="fbar"><span class="flbl">Projekt:</span><select id="sim-proj" onchange="runSim()" style="min-width:340px"></select></div>
+    <div id="sim-out"></div>
+  </div>
+</div>
+
+<!-- OPIEKUNOWIE -->
+<div class="page" id="page-opiekuni">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">◉</div>Opiekunowie projektów</div><div class="ph-sub">Statystyki, portfolio projektów i ocena efektywności</div></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fop-dz" onchange="buildOpGrid()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fop-s" placeholder="Szukaj opiekuna…" style="width:180px" oninput="buildOpGrid()"></div>
+  <div class="op-grid" id="op-grid"></div>
+  <div id="op-detail" class="hidden">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px"><button class="btn btn-out btn-sm" onclick="closeOpDetail()">← Powrót</button><div class="ph-t" id="op-det-name"></div><span id="op-det-dz" class="badge bb"></span></div>
+    <div class="kgrid" id="kpi-op-det"></div>
+    <div class="twrap"><div class="ttb"><input id="fopd-s" placeholder="Szukaj projektu…" style="width:180px" oninput="renderOpProj()"><span class="t-info" id="info-opd">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th class="nr">Budżet</th><th>Ostatni WNP</th><th>Status</th><th>Postęp finansowy</th><th>Postęp rzeczowy</th><th>Ryzyko aRPK</th></tr></thead><tbody id="tb-opd"></tbody></table></div><div class="pager" id="pg-opd"></div></div>
+  </div>
+</div>
+
+<!-- aRPK ANALIZA -->
+<div class="page" id="page-arpk">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">⚠</div>Analiza ryzyka aRPK (RBMV)</div><div class="ph-sub">Automatyczna Roczna Punktacja Kontroli · 0-100 · 11 kategorii · art. 74(2) CPR 2021/1060</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="exportCSV('arpk')">↓ CSV</button></div></div>
+  <!-- Category descriptions -->
+  <div id="arpk-cats-overview" style="margin-bottom:14px">
+    <div class="sec">Kategorie ryzyka aRPK — istotności i opisy</div>
+    <div id="arpk-cats-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:8px;margin-bottom:14px"></div>
+  </div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fa-dz" onchange="renderArpk()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fa-s" placeholder="Nr projektu / beneficjent…" style="width:210px" oninput="renderArpk()"><select id="fa-op" onchange="renderArpk()"><option value="">Wszyscy opiekunowie</option></select><select id="fa-level" onchange="renderArpk()"><option value="">Wszystkie poziomy</option><option value="niskie">Niskie (0-24)</option><option value="srednie">Średnie (25-49)</option><option value="wysokie">Wysokie (50-74)</option><option value="krytyczne">Krytyczne (75+)</option></select></div>
+  <div class="kgrid" id="kpi-arpk"></div>
+  <div class="cgrid">
+    <div class="ccard"><div class="ctitle">Rozkład poziomu ryzyka</div><div style="position:relative;height:170px"><canvas id="ch-arpk-dist"></canvas></div></div>
+    <div class="ccard"><div class="ctitle">Dominujące kategorie ryzyka (suma pkt)</div><div style="position:relative;height:170px"><canvas id="ch-arpk-cat"></canvas></div></div>
+  </div>
+  <div class="twrap"><div class="ttb"><span class="t-info" id="info-arpk">—</span></div><div class="of"><table class="tbl"><thead><tr><th>Nr projektu</th><th>Beneficjent</th><th>Ryzyko aRPK</th><th>Poziom</th><th class="nr">R1</th><th class="nr">R2</th><th class="nr">R3</th><th class="nr">R4</th><th class="nr">R5</th><th class="nr">R6</th><th class="nr">R8</th><th class="nr">R9</th><th>Opiekun</th><th>Wymagane działanie</th></tr></thead><tbody id="tb-arpk"></tbody></table></div><div class="pager" id="pg-arpk"></div></div>
+</div>
+
+<!-- METRYKI PROJEKTÓW -->
+<div class="page" id="page-metryki">
+  <div class="ph"><div><div class="ph-t"><div class="ph-icon">📋</div>Metryki projektów</div><div class="ph-sub">Realizacja finansowa i rzeczowa · Pełna ocena aRPK per projekt · Wskaźniki produktu i rezultatu</div></div><div class="xbar"><button class="btn btn-out btn-sm" onclick="window.print()">↓ PDF</button></div></div>
+  <div class="fbar"><span class="flbl">Dział:</span><select id="fm-dz" onchange="renderMetryki()" style="min-width:105px"><option value="">Wszystkie</option><option value="1">EFS I</option><option value="2">EFS II</option><option value="3">EFS III</option></select><input id="fm-s" placeholder="Nr projektu / beneficjent…" style="width:220px" oninput="renderMetryki()"><select id="fm-op" onchange="renderMetryki()"><option value="">Wszyscy opiekunowie</option></select><select id="fm-lv" onchange="renderMetryki()"><option value="">Wszystkie poziomy aRPK</option><option value="niskie">Niskie</option><option value="srednie">Średnie</option><option value="wysokie">Wysokie</option><option value="krytyczne">Krytyczne</option></select></div>
+  <div class="kgrid" id="kpi-metryki"></div>
+  <div id="metryki-list"></div>
+  <div class="pager" id="pg-metryki"></div>
+</div>
+
+<!-- WCZYTAJ DANE -->
+<div class="page" id="page-import">
+  <div class="ph">
+    <div>
+      <div class="ph-t"><div class="ph-icon">⬆</div>Wczytaj aktualne dane</div>
+      <div class="ph-sub">Obsługiwane formaty: AiZarzadzanie.xlsx (arkusze WNP/UDA/HP) · Raporty systemowe XLSX · Numer projektu jako klucz łączący</div>
+    </div>
+  </div>
+
+  <!-- DROP ZONE -->
+  <div id="imp-dropzone" class="imp-drop" onclick="document.getElementById('imp-fileinput').click()" ondragover="impDragOver(event)" ondragleave="impDragLeave(event)" ondrop="impDrop(event)">
+    <input type="file" id="imp-fileinput" accept=".xlsx,.xls,.csv" style="display:none" onchange="impFileSelected(this.files[0])">
+    <div class="imp-drop-icon">📂</div>
+    <div class="imp-drop-t">Przeciągnij plik XLSX lub kliknij aby wybrać</div>
+    <div class="imp-drop-s">Obsługiwane arkusze: WNP.biezace · WNP.certyfikowane · WNP.wszystkie · WNP.wskazniki · UDA.umowy · HP.wszystkie<br>Raporty: Raport wnioski bieżące · Raport wnioski certyfikowane · Raport dane z umów · Raport HP</div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="imp-prog-wrap" class="hidden" style="margin:12px 0">
+    <div style="font-size:.96rem;color:var(--txt2);margin-bottom:4px" id="imp-prog-lbl">Wczytywanie…</div>
+    <div class="imp-prog"><div class="imp-prog-b" id="imp-prog-b" style="width:0%"></div></div>
+  </div>
+
+  <!-- SHEETS DETECTED -->
+  <div id="imp-sheets-wrap" class="hidden">
+    <div class="sec">Wykryte arkusze</div>
+    <div class="imp-sheets" id="imp-sheets-grid"></div>
+  </div>
+
+  <!-- PREVIEW / DELTA -->
+  <div id="imp-preview-wrap" class="hidden">
+    <div class="sec">Podgląd zmian</div>
+    <div class="imp-preview">
+      <div class="imp-prev-hdr">
+        <span>📊 Zestawienie zmian danych</span>
+        <span id="imp-prev-file" style="color:var(--txt3);font-weight:400"></span>
+        <button class="btn btn-sm btn-out" style="margin-left:auto" onclick="impReset()">✕ Anuluj</button>
+      </div>
+      <div class="imp-delta" id="imp-delta"></div>
+    </div>
+    <div id="imp-log" class="imp-log"></div>
+
+  <!-- IMPORT PRACOWNIKÓW -->
+  <div style="margin-top:24px;padding:16px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px">
+    <div style="font-size:1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:1.1rem">&#x1F465;</span> Pracownicy — słownik opiekunów
+    </div>
+    <div style="font-size:.88rem;color:var(--txt2);margin-bottom:12px">
+      Wczytaj plik <strong>Pracownicy.xlsx</strong> z kolumnami: <span style="font-family:var(--mono);font-size:.82rem;color:var(--acc2)">Pracownik &middot; Opiekun &middot; Dział</span>. Dane są zapisywane i pozostają po zamknięciu narzędzia.
+    </div>
+    <div id="per-drop-imp" style="border:2px dashed var(--brd2);border-radius:8px;padding:20px 16px;text-align:center;cursor:pointer;margin-bottom:10px;transition:all .15s;background:var(--bg3)"
+      onclick="document.getElementById('per-fileinput-imp').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
+      ondragleave="this.style.borderColor=''"
+      ondrop="event.preventDefault();this.style.borderColor='';perFileSelectedImp(event.dataTransfer.files[0])">
+      <input type="file" id="per-fileinput-imp" accept=".csv,.xlsx,.xls" style="display:none" onchange="perFileSelectedImp(this.files[0])">
+      <div style="font-size:1.2rem;margin-bottom:6px">&#x1F4C4;</div>
+      <div style="font-size:.9rem;font-weight:600;margin-bottom:3px">Przeciągnij plik lub kliknij aby wybrać</div>
+      <div style="font-size:.78rem;color:var(--txt3)">XLSX lub CSV &middot; Pracownicy.xlsx</div>
+    </div>
+    <div id="per-status-imp" style="font-size:.84rem;min-height:20px;margin-bottom:10px"></div>
+    <div id="per-list-imp" style="display:flex;flex-direction:column;gap:3px;max-height:280px;overflow-y:auto"></div>
+  </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button class="btn" id="imp-apply-btn" onclick="impApply()">✓ Zastosuj dane i odśwież dashboard</button>
+      <button class="btn btn-out" onclick="impReset()">Anuluj</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="imp-history-wrap" style="margin-top:20px">
+    <div class="sec">Historia importów</div>
+    <div id="imp-history-list" class="imp-log" style="max-height:200px">Brak importowanych danych w tej sesji.</div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<div class="modal-ov" id="detModal"><div class="modal"><button class="modal-x" onclick="closeModal()">✕</button><div class="modal-t" id="det-t"></div><div class="dg" id="det-c"></div></div></div>
+
+<script>
+// ── STORAGE SHIM — działa lokalnie bez localStorage (Edge/Firefox ochrona prywatności) ──
+var _MEM_STORE = {};
+var _STORAGE = (function(){
+  // Sprawdź czy localStorage działa
+  try{ _STORAGE.setItem('__t','1'); _STORAGE.removeItem('__t'); return localStorage; }catch(e){}
+  // Sprawdź sessionStorage
+  try{ sessionStorage.setItem('__t','1'); sessionStorage.removeItem('__t'); return sessionStorage; }catch(e){}
+  // Fallback: in-memory (dane tracone po zamknięciu karty, ale narzędzie działa)
+  return {
+    getItem: function(k){ return _MEM_STORE[k]!==undefined ? _MEM_STORE[k] : null; },
+    setItem: function(k,v){ _MEM_STORE[k]=v; },
+    removeItem: function(k){ delete _MEM_STORE[k]; }
+  };
+})();
+
+const RAW={"wer":[],"pop":[],"zat":[],"rpk":[],"arpk":[],"arpk_map":{},"hp":[],"hp_wer":[],"hp_zat":[],"postep":[],"rzeczowy":[],"metryki":[],"umowy":[],"wskazniki":[],"zadania":{},"op_stats":{}};
+
+// ─── CALENDAR ───
+const PL_HOL=new Set(["2024-01-01","2024-01-06","2024-03-31","2024-04-01","2024-05-01","2024-05-03","2024-05-19","2024-05-30","2024-08-15","2024-11-01","2024-11-11","2024-12-25","2024-12-26","2025-01-01","2025-01-06","2025-04-20","2025-04-21","2025-05-01","2025-05-03","2025-06-08","2025-06-19","2025-08-15","2025-11-01","2025-11-11","2025-12-25","2025-12-26","2026-01-01","2026-01-06","2026-04-05","2026-04-06","2026-05-01","2026-05-03","2026-05-24","2026-06-04","2026-08-15","2026-11-01","2026-11-11","2026-12-25","2026-12-26"]);
+function isWd(d){const w=d.getDay();if(w===0||w===6)return false;return!PL_HOL.has(d.toISOString().slice(0,10));}
+function addWd(s,n){if(!s)return null;let d=new Date(s),c=0;while(c<n){d=new Date(d.getTime()+86400000);if(isWd(d))c++;}return d;}
+function wdBetween(a,b){if(!a||!b)return 0;let d=new Date(typeof a==='string'?a:a.toISOString()),c=0;const e=new Date(typeof b==='string'?b:b.toISOString());while(d<e){d=new Date(d.getTime()+86400000);if(isWd(d))c++;}return c;}
+function wdSince(s){if(!s)return null;return wdBetween(new Date(s),new Date());}
+
+// ─── FORMAT ───
+const _f2=new Intl.NumberFormat("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt=n=>(n==null)?"—":_f2.format(n);
+const fmtK=n=>{if(n==null)return"—";const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2).replace(".",",")+"\u00a0mln\u00a0zł";if(a>=1e3)return Math.round(n/1e3).toLocaleString("pl-PL")+"\u00a0tys.\u00a0zł";return fmt(n)+"\u00a0zł";};
+const fmtD=s=>{if(!s)return"—";const d=new Date(s);return isNaN(d)?String(s):d.toLocaleDateString("pl-PL");};
+const clamp=(s,n=28)=>{if(!s)return"—";const t=String(s);return t.length>n?t.slice(0,n)+"…":t;};
+const NOW=new Date();
+const ST_CLS={"Zatwierdzony":"g","Do korekty":"y","Do poprawy":"y","W trakcie weryfikacji":"b","Złożony":"c","Poprawiany":"o","Anulowany":"r","Zakończona":"g","Przesłany":"b"};
+function badge(s,c){return`<span class="badge b${c||(ST_CLS[s]||"gr")}">${s||"—"}</span>`;}
+function arpkColor(sc){return sc>=75?"var(--red)":sc>=50?"var(--orn)":sc>=25?"var(--yel)":"var(--grn)";}
+function arpkBadge(sc){sc=sc||0;const[lbl,cl]=sc>=75?["KRYTYCZNE","r"]:sc>=50?["WYSOKIE","o"]:sc>=25?["ŚREDNIE","y"]:["NISKIE","g"];return{lbl,cl,badge:`<span class="badge b${cl}" style="min-width:68px;text-align:center;justify-content:center">${sc}\u00b7${lbl}</span>`};}
+function arpkAction(sc){return sc>=75?"Weryfikacja 100% · Eskalacja · OTS obligatoryjna":sc>=50?"Weryfikacja rozszerzona · OTS planowane":sc>=25?"Weryfikacja standardowa":"Weryfikacja uproszczona";}
+function arpkLevel(sc){return sc>=75?"krytyczne":sc>=50?"wysokie":sc>=25?"srednie":"niskie";}
+function pctColor(p){return p>=70?"var(--grn)":p>=40?"var(--acc)":p>=20?"var(--yel)":"var(--red)";}
+
+// ─── aRPK CATEGORY DEFINITIONS ───
+const ARPK_CATS=[
+  {id:"r1",code:"R1",name:"Rodzaj beneficjenta",desc:"Ryzyko związane z formą prawną i doświadczeniem beneficjenta. Podmioty prywatne i mikroprzedsiębiorstwa niosą wyższe ryzyko niż podmioty publiczne z doświadczeniem w rozliczaniu funduszy UE.",maxOrig:10,col:"var(--acc)"},
+  {id:"r2",code:"R2",name:"Wielkość projektu",desc:"Projekty o wyższej wartości kwalifikowalnej w stosunku do mediany populacji podlegają intensywniejszej kontroli. Duże kwoty zwiększają ryzyko nieprawidłowości finansowych.",maxOrig:10,col:"var(--acc2)"},
+  {id:"r3",code:"R3",name:"Realizatorzy i partnerzy",desc:"Projekty realizowane w partnerstwie lub z udziałem podmiotów realizujących charakteryzują się wyższym ryzykiem ze względu na złożoność zarządzania i rozliczania.",maxOrig:8,col:"var(--acc3)"},
+  {id:"r4",code:"R4",name:"Postęp rzeczowy wskaźników",desc:"Niska realizacja wskaźników produktu i rezultatu sygnalizuje trudności wykonawcze lub rozbieżność między planowanymi a osiąganymi efektami projektu. Ocena na tle populacji aktywnych projektów.",maxOrig:13,col:"var(--orn)"},
+  {id:"r5",code:"R5",name:"Równoległe projekty beneficjenta",desc:"Beneficjenci realizujący jednocześnie wiele projektów narażeni są na ryzyko rozproszenia zasobów zarządczych i administracyjnych, co może prowadzić do błędów w rozliczaniu.",maxOrig:8,col:"var(--grn)"},
+  {id:"r6",code:"R6",name:"Liczba wersji wniosku o płatność",desc:"Wysokia liczba wersji i korekt wniosków o płatność wskazuje na trudności beneficjenta w prawidłowym rozliczaniu wydatków lub problemy z kwalifikowalnością ponoszonych kosztów.",maxOrig:15,col:"var(--yel)"},
+  {id:"r7",code:"R7",name:"Skargi i odwołania",desc:"Wpływ skarg na projekt od beneficjentów, uczestników lub podmiotów trzecich wskazuje na potencjalne nieprawidłowości w realizacji lub naruszenia zasad równości szans. Dane wprowadzane ręcznie.",maxOrig:5,col:"var(--red)"},
+  {id:"r8",code:"R8",name:"Nieprawidłowości i korekty",desc:"Historia wykrytych nieprawidłowości w poprzednich wnioskach o płatność i dokonanych korektach finansowych bezpośrednio świadczy o podwyższonym ryzyku w bieżącym i przyszłych wnioskach.",maxOrig:15,col:"var(--red)"},
+  {id:"r9",code:"R9",name:"Odchylenie wyd. v1 vs zatwierdzona",desc:"Istotne różnice między wartością wydatków kwalifikowalnych w pierwszej a ostatniej wersji wniosku wskazują na trudności z utrzymaniem planowanego zakresu finansowego lub korekty kwalifikowalności.",maxOrig:15,col:"var(--orn)"},
+];
+
+// ─── WEIGHT STATE (editable per category) ───
+const W={};
+ARPK_CATS.forEach(c=>{W[c.id]=c.maxOrig;});
+// Load persisted weights (after defaults set)
+// Will be called after function defs: loadWeights()
+// Will be called after function defs: loadPersonel()
+
+function getWeightedScore(entry){
+  const b=entry.breakdown||{};
+  const cats={
+    r1:{raw:b.r1_beneficjent||0,maxOrig:10},
+    r2:{raw:b.r2_wielkosc||0,maxOrig:10},
+    r3:{raw:b.r3_realizatorzy||0,maxOrig:8},
+    r4:{raw:b.r4_rzeczowy||0,maxOrig:13},
+    r5:{raw:b.r5_rownolegle||0,maxOrig:8},
+    r6:{raw:b.r6_wersje||0,maxOrig:15},
+    r7:{raw:b.r7_skargi||0,maxOrig:5},
+    r8:{raw:b.r8_nieprawidlowosci||0,maxOrig:15},
+    r9:{raw:b.r9_odchylenie||0,maxOrig:15},
+  };
+  let total=0;
+  const sumMaxW=Object.values(W).reduce((s,v)=>s+v,0);
+  const sumMaxOrig=ARPK_CATS.reduce((s,c)=>s+c.maxOrig,0);
+  Object.entries(cats).forEach(([k,v])=>{
+    if(v.maxOrig===0)return;
+    const ratio=v.raw/v.maxOrig;
+    const weighted=ratio*(W[k]||0);
+    total+=weighted;
+  });
+  // Normalize to 0-100
+  return Math.min(100,Math.round(total/sumMaxW*100));
+}
+
+function getCatPts(entry,catId){
+  const b=entry.breakdown||{};
+  const map={r1:b.r1_beneficjent,r2:b.r2_wielkosc,r3:b.r3_realizatorzy,r4:b.r4_rzeczowy,r5:b.r5_rownolegle,r6:b.r6_wersje,r7:b.r7_skargi,r8:b.r8_nieprawidlowosci,r9:b.r9_odchylenie};
+  return map[catId]||0;
+}
+
+function catStateDesc(entry,catId,umowa){
+  const b=entry.breakdown||{};
+  switch(catId){
+    case"r1":{const lf=umowa.forma_prawna||"nieznana";return`Forma prawna: ${lf} · ${b.r1_beneficjent>=7?"Podmiot prywatny (wyższe ryzyko)":b.r1_beneficjent>=4?"Podmiot mieszany":"Podmiot publiczny (niższe ryzyko)"}`;}
+    case"r2":{const bud=umowa.budzet||0;return`Budżet: ${fmtK(bud)} · ${b.r2_wielkosc>=8?"Znacznie powyżej mediany populacji":b.r2_wielkosc>=5?"Powyżej mediany":b.r2_wielkosc>=3?"Zbliżony do mediany":"Poniżej mediany"}`;}
+    case"r3":{return b.r3_realizatorzy>0?"Projekt partnerski lub wielopodmiotowy":"Beneficjent realizuje projekt samodzielnie";}
+    case"r4":{const w=RAW.wskazniki[entry.nr]||RAW.wskazniki[Object.keys(RAW.arpk_map).find(k=>k===entry.nr)]||{};const avg=w.avg_all;return avg!=null?`Śr. realizacja wskaźników: ${avg}% · ${w.cnt_prod||0} prod. / ${w.cnt_rez||0} rez.`:"Brak danych wskaźnikowych";}
+    case"r5":{const cnt=b.r5_rownolegle>=7?">5":b.r5_rownolegle>=4?"3-5":b.r5_rownolegle>=2?"2":b.r5_rownolegle>0?"1":"0";return`Beneficjent ma ${cnt} równoległych projektów w systemie`;}
+    case"r6":{return b.r6_wersje>=12?"Bardzo wysoka liczba wersji WNP (≥3 śr.)":b.r6_wersje>=6?"Podwyższona liczba wersji WNP (≥2 śr.)":b.r6_wersje>0?"Nieznacznie podwyższona":"Standardowa liczba wersji";}
+    case"r7":{return b.r7_skargi>0?`${b.r7_skargi} pkt — skargi na projekt zaewidencjonowane`:"Brak skarg zaewidencjonowanych (dane ręczne)";}
+    case"r8":{return b.r8_nieprawidlowosci>=12?"Liczne nieprawidłowości w historii WNP":b.r8_nieprawidlowosci>=7?"Kilka nieprawidłowości":b.r8_nieprawidlowosci>0?"Jednostkowe nieprawidłowości":"Brak stwierdzonych nieprawidłowości";}
+    case"r9":{return b.r9_odchylenie>=12?"Bardzo duże odchylenia finansowe v1→zatw. (>30%)":b.r9_odchylenie>=7?"Istotne odchylenia (>15%)":b.r9_odchylenie>0?"Umiarkowane odchylenia (>5%)":"Odchylenia w normie";}
+    default:return"—";
+  }
+}
+
+// ─── CFG STATE ───
+// ─── PERSONEL (skróty → pełne dane) ───
+const DEFAULT_PERSONEL={
+  "JOAPRZYB2":{skrot:"JOAPRZYB2",nazwisko:"Przybyła",imie:"Joanna",dzial:"Dział Projektów EFS I"},
+  "KATOLEJ2":{skrot:"KATOLEJ2",nazwisko:"Olejarz",imie:"Katarzyna",dzial:"Dział Projektów EFS II"},
+  "MARMICK2":{skrot:"MARMICK2",nazwisko:"Mickiewicz",imie:"Marzena",dzial:"Dział Projektów EFS I"},
+  "MARKUCZ2":{skrot:"MARKUCZ2",nazwisko:"Kuczak",imie:"Mariusz",dzial:"Dział Projektów EFS I"},
+  "MAGNOB2":{skrot:"MAGNOB2",nazwisko:"Nobis",imie:"Magdalena",dzial:"Dział Projektów EFS III"},
+  "ANNOCH2":{skrot:"ANNOCH2",nazwisko:"Ochnik",imie:"Anna",dzial:"Dział Projektów EFS III"},
+  "MICPLO2":{skrot:"MICPLO2",nazwisko:"Plotan",imie:"Michalina",dzial:"Dział Projektów EFS I"},
+  "AGAMIL2":{skrot:"AGAMIL2",nazwisko:"Milczarska",imie:"Agata",dzial:"Dział Projektów EFS III"},
+  "LUCOKR2":{skrot:"LUCOKR2",nazwisko:"Okraszewski",imie:"Lucjan",dzial:"Dział Projektów EFS I"},
+  "MICMASE2":{skrot:"MICMASE2",nazwisko:"Masełko",imie:"Michał",dzial:"Dział Projektów EFS II"},
+  "AGNMOT2":{skrot:"AGNMOT2",nazwisko:"Motylska",imie:"Agnieszka",dzial:"Dział Projektów EFS III"},
+  "KATGORN2":{skrot:"KATGORN2",nazwisko:"Górniak",imie:"Katarzyna",dzial:"Dział Projektów EFS III"},
+  "MAGSTY2":{skrot:"MAGSTY2",nazwisko:"Stychno",imie:"Magdalena",dzial:"Dział Projektów EFS I"},
+  "ALEJAKU2":{skrot:"ALEJAKU2",nazwisko:"Jakubek",imie:"Aleksandra",dzial:"Dział Projektów EFS II"},
+  "SYLWIT2":{skrot:"SYLWIT2",nazwisko:"Witowska",imie:"Sylwia",dzial:"Dział Projektów EFS II"},
+  "ALEZMO2":{skrot:"ALEZMO2",nazwisko:"Zmonarska",imie:"Aleksandra",dzial:"Dział Projektów EFS II"},
+  "KRYWLO2":{skrot:"KRYWLO2",nazwisko:"Włodek",imie:"Karystian",dzial:"Dział Projektów EFS II"},
+  "PIOKAC2":{skrot:"PIOKAC2",nazwisko:"Kaczmarek",imie:"Piotr",dzial:"Dział Projektów EFS I"},
+  "ANNDUDE2":{skrot:"ANNDUDE2",nazwisko:"Dudek",imie:"Anna",dzial:"Dział Projektów EFS II"},
+  "KARJAK2":{skrot:"KARJAK2",nazwisko:"Jakubczak",imie:"Karolina",dzial:"Dział Projektów EFS II"},
+  "DARSTEP2":{skrot:"DARSTEP2",nazwisko:"Stępień",imie:"Daria",dzial:"Dział Projektów EFS I"},
+  "BARKORE2":{skrot:"BARKORE2",nazwisko:"Korecka",imie:"Barbara",dzial:"Dział Projektów EFS III"},
+  "MAGDRYG2":{skrot:"MAGDRYG2",nazwisko:"Drygała",imie:"Magdalena",dzial:"Dział Projektów EFS II"},
+  "KATDOL2":{skrot:"KATDOL2",nazwisko:"Dolecka",imie:"Katarzyna",dzial:"Dział Projektów EFS I"},
+  "RAFMAT2":{skrot:"RAFMAT2",nazwisko:"Matejko",imie:"Rafał",dzial:"Dział Projektów EFS II"},
+  "JOASAW2":{skrot:"JOASAW2",nazwisko:"Sawicka",imie:"Joanna",dzial:"Dział Projektów EFS III"},
+  "JULAFA2":{skrot:"JULAFA2",nazwisko:"Afanasiew",imie:"Julia",dzial:"Dział Projektów EFS II"}
+}; // default workers
+const PERSONEL=Object.assign({},DEFAULT_PERSONEL); // always has defaults
+
+// ─── CFG STATE + PERSISTENCE ───
+function loadSaved(){
+  try{
+    const s=_STORAGE.getItem("rbmv_cfg");
+    if(s){
+      const p=JSON.parse(s);
+      return{
+        dzialy:new Set(p.dzialy||["all"]),
+        opDzial:p.opDzial||{},
+        postepOd:p.postepOd||"projekt",
+        opozn:p.opozn||20,
+        d1:p.d1||20,
+        dn:p.dn||15,
+        dp:p.dp||5,
+      };
+    }
+  }catch(e){}
+  return{dzialy:new Set(["all"]),opDzial:{},postepOd:"projekt",opozn:20,d1:20,dn:15,dp:5};
+}
+const CFG=loadSaved();
+
+function saveCFG(){
+  try{
+    _STORAGE.setItem("rbmv_cfg",JSON.stringify({
+      dzialy:[...CFG.dzialy],
+      opDzial:CFG.opDzial,
+      postepOd:CFG.postepOd,
+      opozn:CFG.opozn,
+      d1:CFG.d1,
+      dn:CFG.dn,
+      dp:CFG.dp,
+    }));
+  }catch(e){}
+}
+
+// Load & save W weights
+function loadWeights(){
+  try{
+    const s=_STORAGE.getItem("rbmv_weights");
+    if(s){const p=JSON.parse(s);ARPK_CATS.forEach(c=>{if(p[c.id]!=null)W[c.id]=p[c.id];});if(p.__locked!=null)WEIGHTS_LOCKED=p.__locked;}
+  }catch(e){}
+}
+function saveWeights(){
+  try{_STORAGE.setItem("rbmv_weights",JSON.stringify({...W,__locked:WEIGHTS_LOCKED}));}catch(e){}
+}
+
+// Load & save PERSONEL
+function loadPersonel(){
+  // Zawsze zaczynaj od danych domyślnych
+  Object.assign(PERSONEL, DEFAULT_PERSONEL);
+  // Dołącz dane z pamięci (zapisane przez użytkownika)
+  try{
+    const s=_STORAGE.getItem("rbmv_personel");
+    if(s){const p=JSON.parse(s);Object.assign(PERSONEL,p);}
+  }catch(e){}
+  // Sync opDzial z działu w PERSONEL
+  Object.values(PERSONEL).forEach(function(p){
+    if(p.skrot&&p.dzial){var code=dzialToCode(p.dzial);if(code)CFG.opDzial[p.skrot]=code;}
+  });
+}
+function savePersonel(){
+  try{_STORAGE.setItem("rbmv_personel",JSON.stringify(PERSONEL));}catch(e){}
+  // Aktualizuj licznik w sekcji konfiguracji
+  var s=document.getElementById("per-status");
+  var cnt=Object.keys(PERSONEL).length;
+  if(s) s.textContent=cnt+" pracowników w słowniku";
+  var sImp=document.getElementById("per-status-imp");
+  if(sImp) sImp.textContent=cnt+" pracowników w słowniku";
+}
+
+// Helper: get display name for operator code
+function opName(skrot){
+  const p=PERSONEL[skrot];
+  if(p)return`${p.nazwisko} ${p.imie}`;
+  return skrot||"—";
+}
+function opFullInfo(skrot){
+  const p=PERSONEL[skrot];
+  if(p)return{name:`${p.nazwisko} ${p.imie}`,dzial:p.dzial||CFG.opDzial[skrot]||"",skrot};
+  return{name:skrot||"—",dzial:CFG.opDzial[skrot]||"",skrot};
+}
+
+function opiekInDzial(op){if(CFG.dzialy.has("all"))return true;return CFG.dzialy.has(CFG.opDzial[op]);}
+function projInScope(nr){const op=(RAW.arpk_map[nr]||{}).opiekun||"—";return opiekInDzial(op);}
+function dzialFilter(op,selDzial){if(!selDzial)return true;return CFG.opDzial[op]===selDzial;}
+
+document.getElementById("tb-date").textContent=NOW.toLocaleString("pl-PL");
+document.getElementById("ov-date").textContent=NOW.toLocaleDateString("pl-PL");
+
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".sb-item").forEach(i=>i.classList.remove("act"));
+  document.getElementById("page-"+id).classList.add("on");
+  const n=document.getElementById("nav-"+id);if(n)n.classList.add("act");
+}
+function toggleCfg(){document.getElementById("cfgOverlay").classList.toggle("on");document.getElementById("btn-cfg").classList.toggle("on");}
+function overlayClick(e){if(e.target===document.getElementById("cfgOverlay"))toggleCfg();}
+function showCfgTab(el,id){document.querySelectorAll(".cfg-tab").forEach(t=>t.classList.remove("on"));document.querySelectorAll(".cfg-pane").forEach(p=>p.classList.remove("on"));el.classList.add("on");document.getElementById(id).classList.add("on");}
+function toggleDzial(d){
+  if(d==="all"){CFG.dzialy=new Set(["all"]);document.querySelectorAll(".dz-pill").forEach(p=>p.classList.remove("on"));document.getElementById("dp-all").classList.add("on");}
+  else{CFG.dzialy.delete("all");document.getElementById("dp-all").classList.remove("on");if(CFG.dzialy.has(d))CFG.dzialy.delete(d);else CFG.dzialy.add(d);if(!CFG.dzialy.size){CFG.dzialy.add("all");document.getElementById("dp-all").classList.add("on");}["1","2","3"].forEach(x=>document.getElementById("dp-"+x).classList.toggle("on",CFG.dzialy.has(x)));}
+}
+function buildOpAssign(){
+  if(!RAW.op_stats||typeof RAW.op_stats!=="object")return;
+  const ops=Object.keys(RAW.op_stats).sort();
+  var _oal=document.getElementById("op-assign-list"); if(!_oal)return;
+  _oal.innerHTML=ops.map(o=>{
+    const p=PERSONEL[o];
+    const label=p?`<span class="op-aname" style="min-width:160px"><strong>${p.nazwisko} ${p.imie}</strong> <span style="font-family:var(--mono);color:var(--txt3);font-size:.8rem">${o}</span></span>`:`<span class="op-aname">${o}</span>`;
+    return`<div class="op-arow">${label}<select class="cfg-sel" style="width:110px" onchange="CFG.opDzial['${o}']=this.value;saveCFG()"><option value="">—</option><option value="1"${CFG.opDzial[o]==="1"?" selected":""}>EFS I</option><option value="2"${CFG.opDzial[o]==="2"?" selected":""}>EFS II</option><option value="3"${CFG.opDzial[o]==="3"?" selected":""}>EFS III</option></select></div>`;
+  }).join("");
+}
+// ── WEIGHT LOCK STATE ──
+let WEIGHTS_LOCKED=true;
+function toggleWeightsLock(){
+  WEIGHTS_LOCKED=!WEIGHTS_LOCKED;
+  buildArpkCatEditor();
+  saveWeights();
+}
+function adjustWeight(id,delta){
+  if(WEIGHTS_LOCKED)return;
+  var cat=null;
+  for(var i=0;i<ARPK_CATS.length;i++){if(ARPK_CATS[i].id===id){cat=ARPK_CATS[i];break;}}
+  if(!cat)return;
+  var mx=Math.round(cat.maxOrig*2);
+  W[id]=Math.max(0,Math.min(mx,(W[id]||0)+delta));
+  var rng=document.getElementById("rng-"+id);
+  var val=document.getElementById("val-"+id);
+  if(rng)rng.value=W[id];
+  if(val)val.textContent=W[id]+" pkt";
+  saveWeights();
+  renderArpk();
+}
+function onWeightInput(id,v){
+  W[id]=+v;
+  var val=document.getElementById("val-"+id);
+  if(val)val.textContent=v+" pkt";
+  saveWeights();
+  renderArpk();
+}
+
+function buildArpkCatEditor(){
+  var el=document.getElementById("arpk-cat-editor");
+  if(!el)return;
+  var lk=WEIGHTS_LOCKED;
+  var lockBg=lk?"var(--bg3)":"var(--acc)";
+  var lockCol=lk?"var(--txt1)":"#fff";
+  var lockBd=lk?"var(--brd)":"var(--acc)";
+  var lockIco=lk?"&#x1F512;":"&#x1F513;";
+  var lockLbl=lk?"Wagi zablokowane":"Wagi odblokowane";
+  var lockBtn=lk?"Odblokuj":"Zablokuj";
+  var html="<div style=\"display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;padding:10px 14px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px\">"
+    +"<span style=\"font-size:.85rem;color:var(--txt2)\">"+lockIco+" "+lockLbl+"</span>"
+    +"<button onclick=\"toggleWeightsLock()\" style=\"padding:6px 18px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700;border:1px solid "+lockBd+";background:"+lockBg+";color:"+lockCol+";transition:all .15s\">"+lockBtn+"</button>"
+    +"</div>";
+  for(var i=0;i<ARPK_CATS.length;i++){
+    var c=ARPK_CATS[i];
+    var mx=Math.round(c.maxOrig*2);
+    var bstyle="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:5px;border:1px solid var(--brd);font-size:1.15rem;font-weight:700;background:var(--bg3);transition:all .1s;"+(lk?"cursor:not-allowed;color:var(--txt3);opacity:.35":"cursor:pointer;color:var(--txt1)");
+    var dis=lk?" disabled":"";
+    var rngStyle=lk?" style=\"pointer-events:none;opacity:.4\"":" style=\"\"" ;
+    var oninputAttr=lk?"":(" oninput=\"onWeightInput('"+c.id+"',this.value)\"");
+    html+="<div class=\"arpk-cat-row\" style=\"opacity:"+(lk?".82":"1")+"\">";
+    html+="<div class=\"arpk-cat-hdr\">";
+    html+="<span class=\"arpk-cat-code\">"+c.code+"</span>";
+    html+="<span class=\"arpk-cat-name\">"+c.name+"</span>";
+    html+="<span class=\"arpk-cat-badge\" style=\"background:"+c.col+"\">"+c.maxOrig+" pkt max</span>";
+    html+="</div>";
+    html+="<div class=\"arpk-cat-desc\">"+c.desc+"</div>";
+    html+="<div class=\"arpk-cat-ctl\" style=\"align-items:center;gap:8px\">";
+    html+="<label style=\"white-space:nowrap\">Waga istotności:</label>";
+    html+="<button style=\""+bstyle+"\""+dis+" onclick=\"adjustWeight('"+c.id+"',-1)\" title=\"Zmniejsz wagę\">−</button>";
+    html+="<input type=\"range\" id=\"rng-"+c.id+"\" min=\"0\" max=\""+mx+"\" value=\""+W[c.id]+"\" step=\"1\""+rngStyle+oninputAttr+">";
+    html+="<button style=\""+bstyle+"\""+dis+" onclick=\"adjustWeight('"+c.id+"',+1)\" title=\"Zwiększ wagę\">+</button>";
+    html+="<span class=\"arpk-cat-val\" id=\"val-"+c.id+"\" style=\"min-width:52px;text-align:right\">"+W[c.id]+" pkt</span>";
+    html+="</div></div>";
+  }
+  el.innerHTML=html;
+}
+
+function buildArpkCatsOverview(){
+  const sumW=ARPK_CATS.reduce((s,x)=>s+W[x.id],0);
+  document.getElementById("arpk-cats-grid").innerHTML=ARPK_CATS.map(c=>{
+    const pct=sumW>0?W[c.id]/sumW*100:0;
+    return`<div class="arpk-cat-item" style="border-left:3px solid ${c.col}">
+      <div class="arpk-ci-hdr">
+        <span class="arpk-ci-code" style="color:${c.col}">${c.code}</span>
+        <span class="arpk-ci-name">${c.name}</span>
+        <span class="arpk-ci-max" style="color:${c.col};font-weight:700;font-size:.96rem">${W[c.id]}\u00a0pkt</span>
+      </div>
+      <div class="arpk-ci-state">${c.desc}</div>
+      <div style="display:flex;align-items:center;gap:7px;margin-top:7px">
+        <span style="font-size:.78rem;color:var(--txt3);white-space:nowrap">Waga:</span>
+        <input type="range" min="0" max="${Math.round(c.maxOrig*2)}" value="${W[c.id]}" step="1" style="flex:1;accent-color:${c.col};height:3px;cursor:pointer"
+          oninput="W['${c.id}']=+this.value;this.nextElementSibling.textContent=this.value+'\u00a0pkt';saveWeights();buildArpkCatsOverview();renderArpk();">
+        <span style="font-family:var(--mono);font-size:.78rem;color:${c.col};min-width:38px;text-align:right;font-weight:700">${W[c.id]}\u00a0pkt</span>
+      </div>
+      <div class="arpk-ci-bar" style="margin-top:5px"><div class="arpk-ci-fill" style="width:${pct.toFixed(0)}%;background:${c.col}"></div></div>
+      <div style="font-size:.7rem;color:var(--txt3);text-align:right;margin-top:2px">${pct.toFixed(0)}% sumy wag</div>
+    </div>`;}).join("");
+}
+function cfgChange(){
+  CFG.postepOd=document.getElementById("cfg-postep-od").value;
+  CFG.opozn=+document.getElementById("cfg-opozn").value||20;
+  CFG.d1=+document.getElementById("cfg-d1").value||20;
+  CFG.dn=+document.getElementById("cfg-dn").value||15;
+  CFG.dp=+document.getElementById("cfg-dp").value||5;
+  document.getElementById("pop-lim").textContent=CFG.dp;
+}
+function applyConfig(){cfgChange();saveCFG();const dzLbl=CFG.dzialy.has("all")?"Wszystkie działy":"Dział EFS "+[...CFG.dzialy].join(", EFS ");document.getElementById("tb-dzial").textContent=dzLbl;document.getElementById("ov-dzial").textContent=dzLbl;document.getElementById("postep-od-lbl").textContent=CFG.postepOd==="umowa"?"podpisania umowy":"rozpoczęcia projektu";toggleCfg();rebuildAll();}
+function renderPager(id,cur,tot,cb){
+  const el=document.getElementById(id);if(!el)return;if(tot<=1){el.innerHTML="";return;}
+  let h=`<button ${cur<=1?"disabled":""} onclick="(${cb})(${cur-1})">‹</button>`;
+  for(let p=1;p<=tot;p++){if(p===1||p===tot||(p>=cur-2&&p<=cur+2))h+=`<button class="${p===cur?"on":""}" onclick="(${cb})(${p})">${p}</button>`;else if(p===cur-3||p===cur+3)h+=`<button disabled>…</button>`;}
+  h+=`<button ${cur>=tot?"disabled":""} onclick="(${cb})(${cur+1})">›</button>`;h+=`<span class="pg-info">str.${cur}/${tot}</span>`;el.innerHTML=h;
+}
+function populateSel(id,items,key,lbl0){
+  if(lbl0===undefined)lbl0="Wszyscy opiekunowie";
+  var vals=[...new Set(items.map(function(r){return r[key];}).filter(Boolean))].sort();
+  var el=document.getElementById(id);if(!el)return;
+  // Dla klucza 'opiekun' - wyświetlaj pełne imię i nazwisko zamiast kodu
+  if(key==="opiekun"){
+    el.innerHTML='<option value="">'+lbl0+'</option>'+vals.map(function(v){
+      var n=opName(v);
+      return '<option value="'+v+'">'+n+'</option>';
+    }).join("");
+  } else {
+    el.innerHTML='<option value="">'+lbl0+'</option>'+vals.map(function(v){return '<option>'+v+'</option>';}).join("");
+  }
+}
+function deadlineInfo(r){
+  const ver=r.ver||1;const days=ver===1?CFG.d1:CFG.dn;
+  if(!r.data_zloz)return{lbl:"—",remain:null,dlStr:"—"};
+  const dl=addWd(r.data_zloz,days);if(!dl)return{lbl:"—",remain:null,dlStr:"—"};
+  const remain=wdBetween(NOW,dl);
+  const dlStr=dl.toLocaleDateString("pl-PL");
+  let lbl;
+  if(remain<0)lbl=`<span style="color:var(--red);font-weight:700">Przekr. o ${-remain}\u00a0d.r.</span>`;
+  else if(remain<=3)lbl=`<span style="color:var(--yel)">${remain}\u00a0dni\u00a0rob.</span>`;
+  else lbl=`<span style="color:var(--grn)">${remain}\u00a0dni\u00a0rob.</span>`;
+  return{lbl,remain,dlStr};
+}
+
+// ─── OVERVIEW ───
+let chSt,chMies;
+function buildOverview(){
+  const fw=RAW.wer.filter(r=>projInScope(r.nr_proj));
+  const fp=RAW.pop.filter(r=>projInScope(r.nr_proj));
+  const fz=RAW.zat.filter(r=>projInScope(r.nr_proj));
+  const fu=RAW.umowy.filter(u=>projInScope(u.nr)&&u.ma_umowe);
+  const ps=RAW.postep.filter(p=>projInScope(p.nr));
+  const opoC=ps.filter(p=>p.opozniony).length;
+  const totalB=fu.reduce((s,u)=>s+(u.budzet||0),0);
+  const totalZ=fz.reduce((s,r)=>s+(r.wyd_kwal||0),0);
+  const arpkScores=Object.entries(RAW.arpk_map).filter(([nr])=>projInScope(nr)).map(([,v])=>getWeightedScore(v));
+  const highRisk=arpkScores.filter(s=>s>=50).length;
+
+  // KPI row
+  document.getElementById("kpi-ov").innerHTML=`
+    <div class="kpi b"><div class="kpi-l">Projekty z umową</div><div class="kpi-v">${fu.length}</div></div>
+    <div class="kpi r"><div class="kpi-l">W weryfikacji</div><div class="kpi-v">${fw.length}</div></div>
+    <div class="kpi y"><div class="kpi-l">W poprawie</div><div class="kpi-v">${fp.length}</div></div>
+    <div class="kpi g"><div class="kpi-l">Zatwierdzonych WNP</div><div class="kpi-v">${fz.length}</div></div>
+    <div class="kpi o"><div class="kpi-l">Z opóźnieniami fin.</div><div class="kpi-v">${opoC}</div><div class="kpi-s">odch.&gt;${CFG.opozn}pp</div></div>
+    <div class="kpi p"><div class="kpi-l">Wysokie ryzyko aRPK</div><div class="kpi-v">${highRisk}</div><div class="kpi-s">aRPK≥50</div></div>
+    <div class="kpi c"><div class="kpi-l">Budżet kwalif.</div><div class="kpi-v" style="font-size:1rem">${fmtK(totalB)}</div></div>
+    <div class="kpi g"><div class="kpi-l">Rozliczone wyd.</div><div class="kpi-v" style="font-size:1rem">${fmtK(totalZ)}</div><div class="kpi-s">${totalB?(totalZ/totalB*100).toFixed(1):0}% budżetu</div></div>`;
+
+  document.getElementById("tb-pcnt").textContent=fu.length;
+  document.getElementById("snav-wer").textContent=fw.length;
+  document.getElementById("snav-pop").textContent=fp.length;
+  document.getElementById("snav-zat").textContent=fz.length;
+  document.getElementById("snav-hp").textContent=RAW.hp_wer.length;
+
+  // ── DEADLINE ALERTS ──
+  buildAlerts(fw, fp);
+
+  // ── CHARTS ──
+  const stC={};[...fw,...fp].forEach(r=>{stC[r.status]=(stC[r.status]||0)+1;});
+  stC["Zatwierdzony (hist.)"]=fz.length;
+  if(chSt)chSt.destroy();
+  chSt=new Chart(document.getElementById("ch-st"),{type:"doughnut",
+    data:{labels:Object.keys(stC),datasets:[{data:Object.values(stC),backgroundColor:["#10b981","#f59e0b","#fb923c","#3b82f6","#06b6d4","#f43f5e"],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{color:"#7c8db5",font:{size:11},boxWidth:12}}}}});
+
+  const mMap={};fz.filter(r=>r.miesiac).forEach(r=>{if(!mMap[r.miesiac])mMap[r.miesiac]={c:0,w:0};mMap[r.miesiac].c++;mMap[r.miesiac].w+=r.wyd_kwal||0;});
+  const ms=Object.keys(mMap).sort();
+  const iW=Math.max(500,ms.length*38);
+  document.getElementById("ch-mies-inner").style.width=iW+"px";
+  if(chMies)chMies.destroy();
+  chMies=new Chart(document.getElementById("ch-mies"),{type:"bar",
+    data:{labels:ms.map(m=>m.replace("-","/")),
+    datasets:[{label:"Liczba WNP",data:ms.map(m=>mMap[m].c),backgroundColor:"#3b82f680",borderColor:"#3b82f6",borderWidth:1,yAxisID:"y1"},
+      {label:"Wyd.kwal.(mln)",data:ms.map(m=>+(mMap[m].w/1e6).toFixed(2)),type:"line",borderColor:"#10b981",backgroundColor:"transparent",pointRadius:2,borderWidth:1.5,yAxisID:"y2"}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{ticks:{color:"#4a5578",font:{size:9},maxRotation:50}},y1:{position:"left",ticks:{color:"#7c8db5",font:{size:9}}},y2:{position:"right",ticks:{color:"#10b981",font:{size:9}},grid:{display:false}}},
+      plugins:{legend:{labels:{color:"#7c8db5",font:{size:10},boxWidth:12}}}}});
+}
+
+function buildAlerts(fw, fp){
+  const items=[];
+
+  // WER — deadline per wniosek
+  for(const r of fw){
+    if(!r.data_zloz)continue;
+    const days=r.ver===1?CFG.d1:CFG.dn;
+    const dl=addWd(r.data_zloz,days);if(!dl)continue;
+    const remain=wdBetween(NOW,dl);
+    const base={type:"WNP",nr:r.nr_proj,ben:r.beneficjent,op:r.opiekun||"—",action:"Wer. wniosku",page:"wer"};
+    if(remain<0)items.push({...base,urgency:"overdue",remain,detail:`${r.nr_wn||r.nr_proj} · wer.${r.ver||1} · termin upłynął ${dl.toLocaleDateString("pl-PL")}`});
+    else if(remain<=3)items.push({...base,urgency:"urgent",remain,detail:`${r.nr_wn||r.nr_proj} · wer.${r.ver||1} · termin ${dl.toLocaleDateString("pl-PL")}`});
+  }
+
+  // POP — correction deadline
+  for(const r of fp){
+    if(!r.data_zloz)continue;
+    const dl=addWd(r.data_zloz,CFG.dp);if(!dl)continue;
+    const remain=wdBetween(NOW,dl);
+    const base={type:"POP",nr:r.nr_proj,ben:r.beneficjent,op:r.opiekun||"—",action:"Poprawa WNP",page:"pop"};
+    if(remain<0)items.push({...base,urgency:"overdue",remain,detail:`${r.nr_wn||r.nr_proj} · termin poprawy upłynął ${dl.toLocaleDateString("pl-PL")}`});
+    else if(remain<=3)items.push({...base,urgency:"urgent",remain,detail:`${r.nr_wn||r.nr_proj} · termin poprawy ${dl.toLocaleDateString("pl-PL")}`});
+  }
+
+  // HP — 5 day deadline
+  for(const r of RAW.hp_wer){
+    const nr=r["Numer projektu"];if(!projInScope(nr))continue;
+    if(!r["Data przesłania"])continue;
+    const dl=addWd(r["Data przesłania"],5);if(!dl)continue;
+    const remain=wdBetween(NOW,dl);
+    const op=(RAW.arpk_map[nr]||{}).opiekun||"—";
+    const base={type:"HP",nr,ben:r["Beneficjent Nazwa"]||nr,op,action:"Wer. harmonogramu",page:"hp"};
+    if(remain<0)items.push({...base,urgency:"overdue",remain,detail:`HP ver.${r["Numer wersji harmonogramu"]||"?"} · termin upłynął ${dl.toLocaleDateString("pl-PL")}`});
+    else if(remain<=3)items.push({...base,urgency:"urgent",remain,detail:`HP ver.${r["Numer wersji harmonogramu"]||"?"} · termin ${dl.toLocaleDateString("pl-PL")}`});
+  }
+
+  items.sort((a,b)=>a.urgency===b.urgency?a.remain-b.remain:a.urgency==="overdue"?-1:1);
+
+  const overdueC=items.filter(i=>i.urgency==="overdue").length;
+  const urgentC=items.filter(i=>i.urgency==="urgent").length;
+
+  const cntEl=document.getElementById("ov-alerts-counts");
+  if(cntEl){
+    if(overdueC)cntEl.innerHTML=`<span style="color:var(--red);font-weight:700">🔴 ${overdueC} po terminie</span>${urgentC?` &nbsp;·&nbsp; <span style="color:var(--yel);font-weight:700">🟡 ${urgentC} pilne</span>`:""}`;
+    else if(urgentC)cntEl.innerHTML=`<span style="color:var(--yel);font-weight:700">🟡 ${urgentC} upływa w ciągu 3 d.r.</span>`;
+    else cntEl.innerHTML=`<span style="color:var(--grn)">✓ Brak pilnych</span>`;
+  }
+
+  const typeColor={WNP:"var(--acc)",POP:"var(--orn)",HP:"var(--acc3)"};
+  const typeBg={WNP:"#3b82f614",POP:"#fb923c14",HP:"#8b5cf614"};
+
+  const el=document.getElementById("ov-alerts");
+  if(!items.length){
+    el.innerHTML=`<div style="text-align:center;padding:28px;color:var(--grn);font-size:.9rem">✓ Brak przekroczonych lub zbliżających się terminów</div>`;
+    return;
+  }
+
+  el.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap;align-items:center">
+      ${overdueC?`<span style="background:#f43f5e18;border:1px solid #f43f5e40;color:var(--red);border-radius:5px;padding:4px 13px;font-size:.78rem;font-weight:700">🔴 ${overdueC} przekroczony${overdueC===1?"":overdueC<5?"e":"ch"} termin${overdueC===1?"":"y"}</span>`:""}
+      ${urgentC?`<span style="background:#f59e0b18;border:1px solid #f59e0b40;color:var(--yel);border-radius:5px;padding:4px 13px;font-size:.78rem;font-weight:700">🟡 ${urgentC} upływa w ciągu 3 dni roboczych</span>`:""}
+      <span style="font-size:.72rem;color:var(--txt3);margin-left:auto">Kliknij wiersz → przejdź do modułu</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+    ${items.map(it=>{
+      const isOv=it.urgency==="overdue";
+      const brd=isOv?"var(--red)":"var(--yel)";
+      const remainLbl=isOv
+        ?`<span style="color:var(--red);font-weight:700;font-family:var(--mono);font-size:.8rem">+${-it.remain} d.r.</span>`
+        :`<span style="color:var(--yel);font-weight:700;font-family:var(--mono);font-size:.8rem">${it.remain} d.r.</span>`;
+      return`<div style="background:var(--card);border:1px solid ${brd}28;border-left:3px solid ${brd};border-radius:6px;padding:9px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .1s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--card)'" onclick="showPage('${it.page}')">
+        <span style="background:${typeBg[it.type]};color:${typeColor[it.type]};border:1px solid ${typeColor[it.type]}28;border-radius:4px;padding:3px 9px;font-size:.73rem;font-weight:700;white-space:nowrap;min-width:44px;text-align:center">${it.type}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.ben}</div>
+          <div style="font-size:.73rem;color:var(--txt2);margin-top:1px">${it.detail}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;line-height:1.5">
+          ${remainLbl}
+          <div style="font-size:.7rem;color:var(--txt3)">${isOv?"po terminie":"pozostało"}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;min-width:80px">
+          <div style="font-size:.73rem;color:var(--txt2);font-family:var(--mono)">${it.op}</div>
+          <span style="font-size:.67rem;color:var(--txt3);background:var(--bg3);border:1px solid var(--brd);border-radius:3px;padding:1px 6px;white-space:nowrap">${it.action}</span>
+        </div>
+      </div>`;
+    }).join("")}
+    </div>`;
+}
+
+// ─── W WERYFIKACJI ───
+function buildWer(){populateSel("fw-op",RAW.wer,"opiekun");renderWer();}
+function renderWer(pg=1){
+  const srch=document.getElementById("fw-s").value.toLowerCase(),op=document.getElementById("fw-op").value,st=document.getElementById("fw-st").value,term=document.getElementById("fw-term").value,arpkF=document.getElementById("fw-arpk").value,dz=document.getElementById("fw-dz").value;
+  let f=RAW.wer.filter(r=>{if(dz&&!dzialFilter(r.opiekun,dz))return false;if(!projInScope(r.nr_proj))return false;if(op&&r.opiekun!==op)return false;if(st&&r.status!==st)return false;const sc=getWeightedScore(RAW.arpk_map[r.nr_proj]||{});if(arpkF&&arpkLevel(sc)!==arpkF)return false;if(srch&&!`${r.nr_proj} ${r.beneficjent} ${r.nr_wn}`.toLowerCase().includes(srch))return false;if(term){const{remain}=deadlineInfo(r);if(term==="ok"&&remain!==null&&remain<0)return false;if(term==="late"&&(remain===null||remain>=0))return false;}return true;});
+  const lateCnt=f.filter(r=>deadlineInfo(r).remain!==null&&deadlineInfo(r).remain<0).length;
+  document.getElementById("kpi-wer").innerHTML=`<div class="kpi r"><div class="kpi-l">W weryfikacji</div><div class="kpi-v">${f.length}</div></div><div class="kpi y"><div class="kpi-l">Przekroczony termin</div><div class="kpi-v">${lateCnt}</div></div><div class="kpi b"><div class="kpi-l">Wyd.kwal.</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r.wyd_kwal||0),0))}</div></div><div class="kpi c"><div class="kpi-l">Zaliczki</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r.zaliczka||0),0))}</div></div>`;
+  document.getElementById("info-wer").textContent=`${f.length} wniosków`;
+  const PP=20,sl=f.slice((pg-1)*PP,pg*PP);
+  document.getElementById("tb-wer").innerHTML=sl.map(r=>{const{lbl,dlStr}=deadlineInfo(r);const sc=getWeightedScore(RAW.arpk_map[r.nr_proj]||{});const ab=arpkBadge(sc);return`<tr onclick="showDetail(${JSON.stringify(r).replace(/"/g,"&quot;")})"><td class="mono" style="font-size:1.05rem">${clamp(r.nr_proj,28)}</td><td><div class="clamp">${clamp(r.beneficjent,26)}</div></td><td class="mono" style="font-size:.71rem">${clamp(r.nr_wn,30)}</td><td style="text-align:center">${badge(String(r.ver),r.ver===1?"b":"y")}</td><td>${badge(r.status)}</td><td class="mono">${fmtD(r.data_zloz)}</td><td class="mono" style="font-size:.91rem">${dlStr}</td><td>${lbl}</td><td class="nr mono">${fmtK(r.zaliczka)}</td><td class="nr mono">${fmtK(r.refundacja)}</td><td class="nr mono">${fmtK(r.wyd_kwal)}</td><td class="nr mono">${fmtK(r.dofinansowanie)}</td><td class="nr mono">${fmtK(r.wklad_wlasny)}</td><td class="mono">${opName(r.opiekun)}</td><td>${ab.badge}</td></tr>`;}).join("")||"<tr><td colspan='15' class='empty'>Brak wyników</td></tr>";
+  renderPager("pg-wer",pg,Math.ceil(f.length/PP),p=>renderWer(p));
+}
+
+// ─── W POPRAWIE ───
+function buildPop(){populateSel("fp-op",RAW.pop,"opiekun");renderPop();}
+function renderPop(pg=1){
+  const srch=document.getElementById("fp-s").value.toLowerCase(),op=document.getElementById("fp-op").value,fl=document.getElementById("fp-fl").value,dz=document.getElementById("fp-dz").value;
+  let f=RAW.pop.filter(r=>{if(dz&&!dzialFilter(r.opiekun,dz))return false;if(!projInScope(r.nr_proj))return false;if(op&&r.opiekun!==op)return false;if(srch&&!`${r.nr_proj} ${r.beneficjent} ${r.nr_wn}`.toLowerCase().includes(srch))return false;return true;}).map(r=>{const wd=wdSince(r.data_zloz)||0;return{...r,wd,over:wd>CFG.dp};});
+  if(fl==="ok")f=f.filter(r=>!r.over);if(fl==="late")f=f.filter(r=>r.over);
+  document.getElementById("kpi-pop").innerHTML=`<div class="kpi o"><div class="kpi-l">W poprawie</div><div class="kpi-v">${f.length}</div></div><div class="kpi r"><div class="kpi-l">Przeterminowane</div><div class="kpi-v">${f.filter(r=>r.over).length}</div><div class="kpi-s">&gt;${CFG.dp}\u00a0d.r.</div></div><div class="kpi b"><div class="kpi-l">Wyd.kwal.</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r.wyd_kwal||0),0))}</div></div>`;
+  document.getElementById("info-pop").textContent=`${f.length} wniosków`;
+  const PP=20,sl=f.slice((pg-1)*PP,pg*PP);
+  document.getElementById("tb-pop").innerHTML=sl.map(r=>{const ocena=r.over?`<span class="badge br">PRZETERMINOWANY</span>`:`<span class="badge bg">W terminie</span>`;const wdC=r.over?"var(--red)":r.wd>CFG.dp-2?"var(--yel)":"var(--grn)";const sc=getWeightedScore(RAW.arpk_map[r.nr_proj]||{});return`<tr onclick="showDetail(${JSON.stringify(r).replace(/"/g,"&quot;")})"><td class="mono" style="font-size:1.05rem">${clamp(r.nr_proj,28)}</td><td><div class="clamp">${clamp(r.beneficjent,26)}</div></td><td class="mono" style="font-size:.71rem">${clamp(r.nr_wn,30)}</td><td style="text-align:center">${badge(String(r.ver),r.ver===1?"b":"y")}</td><td>${badge(r.status)}</td><td class="mono">${fmtD(r.data_zloz)}</td><td style="text-align:center;font-family:var(--mono);font-size:.91rem;color:${wdC};font-weight:700">${r.wd}</td><td>${ocena}</td><td class="nr mono">${fmtK(r.wyd_kwal)}</td><td class="mono">${opName(r.opiekun)}</td><td>${arpkBadge(sc).badge}</td></tr>`;}).join("")||"<tr><td colspan='11' class='empty'>Brak wyników</td></tr>";
+  renderPager("pg-pop",pg,Math.ceil(f.length/PP),p=>renderPop(p));
+}
+
+// ─── ZATWIERDZONE ───
+let selMonths=new Set();
+function buildZat(){const months=[...new Set(RAW.zat.filter(r=>r.miesiac).map(r=>r.miesiac))].sort().reverse();document.getElementById("mpills-zat").innerHTML=months.map(m=>`<div class="mp" onclick="toggleM('${m}')" id="mp-${m.replace("-","_")}">${m.replace("-","/")} </div>`).join("");populateSel("fz-op",RAW.zat,"opiekun");renderZat();}
+function toggleM(m){selMonths.has(m)?selMonths.delete(m):selMonths.add(m);document.getElementById("mp-"+m.replace("-","_")).classList.toggle("on",selMonths.has(m));renderZat();}
+function renderZat(pg=1){
+  const srch=document.getElementById("fz-s").value.toLowerCase(),op=document.getElementById("fz-op").value,cert=document.getElementById("fz-cert").value,dz=document.getElementById("fz-dz").value;
+  let f=RAW.zat.filter(r=>{if(dz&&!dzialFilter(r.opiekun,dz))return false;if(!projInScope(r.nr_proj))return false;if(op&&r.opiekun!==op)return false;if(cert&&r.certyfikowana!==cert)return false;if(selMonths.size&&!selMonths.has(r.miesiac))return false;if(srch&&!`${r.nr_proj} ${r.beneficjent} ${r.nr_wn}`.toLowerCase().includes(srch))return false;return true;});
+  document.getElementById("kpi-zat").innerHTML=`<div class="kpi g"><div class="kpi-l">WNP</div><div class="kpi-v">${f.length}</div></div><div class="kpi b"><div class="kpi-l">Wyd.kwal.</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r.wyd_kwal||0),0))}</div></div><div class="kpi c"><div class="kpi-l">Zaliczki</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r.zaliczka||0),0))}</div></div><div class="kpi p"><div class="kpi-l">Refundacje</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r.refundacja||0),0))}</div></div><div class="kpi g"><div class="kpi-l">Certyfikowane</div><div class="kpi-v">${f.filter(r=>r.certyfikowana==="T").length}</div></div>`;
+  document.getElementById("info-zat").textContent=`${f.length} wniosków`;
+  const PP=25,sl=f.slice((pg-1)*PP,pg*PP);
+  document.getElementById("tb-zat").innerHTML=sl.map(r=>`<tr onclick="showDetail(${JSON.stringify(r).replace(/"/g,"&quot;")})"><td class="mono" style="font-size:1.05rem">${clamp(r.nr_proj,28)}</td><td><div class="clamp">${clamp(r.beneficjent,26)}</div></td><td class="mono" style="font-size:.71rem">${clamp(r.nr_wn,26)}</td><td class="mono">${fmtD(r.data_zatw)}</td><td>${r.certyfikowana==="T"?`<span class="badge bg">TAK</span>`:`<span class="badge bgr">NIE</span>`}</td><td style="text-align:center">${r.korekty>0?`<span class="badge by">${r.korekty}</span>`:`<span class="badge bgr">0</span>`}</td><td class="nr mono">${fmtK(r.wyd_kwal)}</td><td class="nr mono">${fmtK(r.wyd_uznane)}</td><td class="nr mono">${fmtK(r.dofinansowanie)}</td><td class="nr mono">${fmtK(r.zaliczka)}</td><td class="nr mono">${fmtK(r.refundacja)}</td><td class="mono">${opName(r.opiekun)}</td></tr>`).join("")||"<tr><td colspan='12' class='empty'>Brak wyników</td></tr>";
+  renderPager("pg-zat",pg,Math.ceil(f.length/PP),p=>renderZat(p));
+}
+
+// ─── RPK ───
+function buildRpk(){populateSel("fr-op",RAW.rpk,"opiekun");renderRpk();}
+function renderRpk(pg=1){
+  const srch=document.getElementById("fr-s").value.toLowerCase(),op=document.getElementById("fr-op").value,fl=document.getElementById("fr-fl").value,dz=document.getElementById("fr-dz").value;
+  let f=RAW.rpk.filter(r=>{if(dz&&!dzialFilter(r.opiekun,dz))return false;if(!projInScope(r.nr_proj))return false;if(op&&r.opiekun!==op)return false;if(fl==="kor"&&r.ver_count<2)return false;if(fl==="bez"&&r.ver_count>1)return false;if(srch&&!`${r.nr_proj} ${r.beneficjent}`.toLowerCase().includes(srch))return false;return true;});
+  document.getElementById("kpi-rpk").innerHTML=`<div class="kpi b"><div class="kpi-l">Wniosków (baza)</div><div class="kpi-v">${f.length}</div></div><div class="kpi y"><div class="kpi-l">Z korektą</div><div class="kpi-v">${f.filter(r=>r.ver_count>1).length}</div></div><div class="kpi ${f.reduce((s,r)=>s+r.diff,0)<0?"r":"g"}"><div class="kpi-l">Łączna różnica</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+r.diff,0))}</div></div>`;
+  document.getElementById("info-rpk").textContent=`${f.length} wniosków`;
+  const PP=20,sl=f.slice((pg-1)*PP,pg*PP);
+  document.getElementById("tb-rpk").innerHTML=sl.map(r=>{const dc=r.diff<-1000?"br":r.diff>1000?"bg":"bgr";const sc=getWeightedScore(RAW.arpk_map[r.nr_proj]||{});return`<tr onclick="showDetail(${JSON.stringify(r).replace(/"/g,"&quot;")})"><td class="mono" style="font-size:1.05rem">${clamp(r.nr_proj,28)}</td><td><div class="clamp">${clamp(r.beneficjent,26)}</div></td><td class="mono" style="font-size:.71rem">${r.nr_wn_base||"—"}</td><td style="text-align:center">${badge(String(r.ver_count),r.ver_count===1?"gr":"y")}</td><td class="nr mono">${fmtK(r.wyd_v1)}</td><td class="nr mono">${fmtK(r.wyd_vl)}</td><td class="nr"><span class="badge ${dc}">${r.diff>=0?"+":""}${fmtK(r.diff)}</span></td><td class="nr"><span class="badge ${dc}">${r.diff>=0?"+":""}${r.diff_pct}%</span></td><td class="mono">${opName(r.opiekun)}</td><td>${arpkBadge(sc).badge}</td></tr>`;}).join("")||"<tr><td colspan='10' class='empty'>Brak wyników</td></tr>";
+  renderPager("pg-rpk",pg,Math.ceil(f.length/PP),p=>renderRpk(p));
+}
+
+// ─── POSTEP FINANSOWY ───
+function buildPostep(){populateSel("fpost-op",RAW.postep,"opiekun");document.getElementById("postep-od-lbl").textContent=CFG.postepOd==="umowa"?"podpisania umowy":"rozpoczęcia projektu";renderPostep();}
+function renderPostep(pg=1){
+  const srch=document.getElementById("fpost-s").value.toLowerCase(),fl=document.getElementById("fpost-fl").value,op=document.getElementById("fpost-op").value,dz=document.getElementById("fpost-dz").value;
+  const useOd=CFG.postepOd==="umowa";
+  let f=RAW.postep.filter(p=>{if(dz&&!dzialFilter(p.opiekun,dz))return false;if(!projInScope(p.nr))return false;if(op&&p.opiekun!==op)return false;if(fl==="late"&&!p.opozniony)return false;if(fl==="ok"&&p.opozniony)return false;if(srch&&!`${p.nr} ${p.beneficjent}`.toLowerCase().includes(srch))return false;return true;});
+  document.getElementById("kpi-postep").innerHTML=`<div class="kpi b"><div class="kpi-l">Projektów</div><div class="kpi-v">${f.length}</div></div><div class="kpi r"><div class="kpi-l">Z opóźnieniami</div><div class="kpi-v">${f.filter(p=>p.opozniony).length}</div><div class="kpi-s">odch.&gt;${CFG.opozn}pp</div></div><div class="kpi g"><div class="kpi-l">Terminowe</div><div class="kpi-v">${f.filter(p=>!p.opozniony).length}</div></div><div class="kpi y"><div class="kpi-l">Śr. realizacja</div><div class="kpi-v">${f.length?( f.reduce((s,p)=>s+(p.poziom_fakt||0),0)/f.length).toFixed(1):0}%</div></div>`;
+  const sl=f.slice((pg-1)*15,pg*15);
+  document.getElementById("postep-list").innerHTML=sl.map(p=>{const pog=p.poziom_fakt||0;const pop=useOd?p.poziom_plan_umowa:p.poziom_plan_proj;const barC=p.opozniony?"var(--red)":pog>=pop?"var(--grn)":"var(--acc)";const ab=arpkBadge(getWeightedScore(RAW.arpk_map[p.nr]||{}));const zadRows=(p.zadania||[]).map(z=>{
+    const k=z.kwal||z["Kwalifikowalne PBD"]||0;
+    const pct=z.real_pct||z["Kwalifikowalne PBD % realizacji"]||0;
+    const nm=z.nazwa||z["Nazwa zadania"]||"—";const nr=z.nr_zad||z["Numer zadania"]||"";
+    const col=pct>=0.7?"var(--grn)":pct>=0.4?"var(--acc)":pct>0?"var(--yel)":"var(--txt3)";
+    return`<div class="zd-row"><span style="color:var(--txt3);min-width:22px;font-family:var(--mono)">${nr}</span><span style="flex:1">${clamp(nm,44)}</span><span class="mono" style="color:var(--acc2)">${fmtK(k)}</span><span class="mono" style="color:${col};min-width:50px;text-align:right">${(pct*100).toFixed(pct<1&&pct>0?1:0)}%</span></div>`;}).join("");return`<div class="pcard ${p.opozniony?"late":"ok"}" onclick="this.querySelector('.zd').classList.toggle('on')"><div class="pcard-hdr"><div><div class="pcard-nr">${p.nr}</div><div class="pcard-nm">${clamp(p.beneficjent,50)}</div></div><div style="display:flex;gap:5px;align-items:center;flex-shrink:0">${p.opozniony?`<span class="badge br">OPÓŹNIENIE</span>`:`<span class="badge bg">OK</span>`}${ab.badge}<span class="badge bgr">${opName(p.opiekun)}</span></div></div><div class="pcard-meta"><span>Okres: <b>${fmtD(p.od)} – ${fmtD(p.do)}</b></span><span>Budżet: <b>${fmtK(p.budzet)}</b></span><span>Rozliczono: <b>${fmtK(p.rozliczone)}</b></span></div><div style="margin-bottom:4px"><div style="display:flex;gap:6px;align-items:center;margin-bottom:3px"><span style="font-size:1rem;color:var(--txt3);min-width:95px">Faktyczny: ${pog.toFixed(1)}%</span><div class="prog" style="flex:1"><div class="prog-b" style="width:${Math.min(100,pog)}%;background:${barC}"></div></div></div><div style="display:flex;gap:6px;align-items:center"><span style="font-size:1rem;color:var(--txt3);min-width:95px">Plan: ${pop.toFixed(1)}%</span><div class="prog" style="flex:1"><div class="prog-b" style="width:${Math.min(100,pop)}%;background:var(--yel);opacity:.5"></div></div></div></div><div class="zd">${zadRows||`<div style="font-size:.94rem;color:var(--txt3);padding:4px 0">Brak szczegółów zadań</div>`}</div><div style="font-size:.92rem;color:var(--txt4);margin-top:3px;text-align:right">▼ kliknij → zadania</div></div>`;}).join("")||"<div class='empty'>Brak projektów</div>";
+  renderPager("pg-postep",pg,Math.ceil(f.length/15),p=>renderPostep(p));
+}
+
+// ─── POSTEP RZECZOWY ───
+function buildRzeczowy(){populateSel("frz-op",Object.entries(RAW.arpk_map).map(([nr,v])=>({opiekun:v.opiekun})),"opiekun");renderRzeczowy();}
+function renderRzeczowy(pg=1){
+  const srch=document.getElementById("frz-s").value.toLowerCase(),op=document.getElementById("frz-op").value,fl=document.getElementById("frz-fl").value,dz=document.getElementById("frz-dz").value,wsk=document.getElementById("frz-wsk").value;
+  let entries=Object.entries(RAW.wskazniki).filter(([nr])=>{
+    if(!projInScope(nr))return false;
+    const opk=(RAW.arpk_map[nr]||{}).opiekun||"";
+    if(dz&&!dzialFilter(opk,dz))return false;
+    if(op&&opk!==op)return false;
+    const u=RAW.umowy.find(u=>u.nr===nr)||{};
+    if(srch&&!`${nr} ${u.beneficjent||""}`.toLowerCase().includes(srch))return false;
+    return true;
+  }).map(([nr,w])=>({nr,w,u:RAW.umowy.find(u=>u.nr===nr)||{},opk:(RAW.arpk_map[nr]||{}).opiekun||"—"}));
+  if(fl==="high")entries=entries.filter(e=>e.w.avg_all>=70);
+  else if(fl==="med")entries=entries.filter(e=>e.w.avg_all>=30&&e.w.avg_all<70);
+  else if(fl==="low")entries=entries.filter(e=>e.w.avg_all!=null&&e.w.avg_all<30);
+  else if(fl==="fin")entries=entries.filter(e=>e.w.zakoncz);
+  entries.sort((a,b)=>(b.w.avg_all||0)-(a.w.avg_all||0));
+  const avgAll=entries.length?entries.reduce((s,e)=>s+(e.w.avg_all||0),0)/entries.length:0;
+  document.getElementById("kpi-rzeczowy").innerHTML=`<div class="kpi b"><div class="kpi-l">Projektów z danymi</div><div class="kpi-v">${entries.length}</div></div><div class="kpi g"><div class="kpi-l">Śr. realizacja</div><div class="kpi-v">${avgAll.toFixed(1)}%</div></div><div class="kpi g"><div class="kpi-l">Realizacja ≥70%</div><div class="kpi-v">${entries.filter(e=>e.w.avg_all>=70).length}</div></div><div class="kpi y"><div class="kpi-l">Realizacja 30-70%</div><div class="kpi-v">${entries.filter(e=>e.w.avg_all>=30&&e.w.avg_all<70).length}</div></div><div class="kpi r"><div class="kpi-l">Realizacja &lt;30%</div><div class="kpi-v">${entries.filter(e=>e.w.avg_all!=null&&e.w.avg_all<30).length}</div></div><div class="kpi p"><div class="kpi-l">Zakończone</div><div class="kpi-v">${entries.filter(e=>e.w.zakoncz).length}</div></div>`;
+  const sl=entries.slice((pg-1)*12,pg*12);
+  document.getElementById("rzeczowy-list").innerHTML=sl.map(({nr,w,u,opk})=>{
+    const avgP=w.avg_prod,avgR=w.avg_rez,avgA=w.avg_all;
+    const colA=pctColor(avgA||0);const r4=w.r4_score;
+    const wsks=(w.wskazniki||[]).filter(s=>!wsk||s.r===wsk).slice(0,15);
+    const wskRows=wsks.map(s=>{const c=pctColor(s.p);return`<tr><td>${s.r==="P"?`<span class="badge bc" style="font-size:.55rem">PRO</span>`:`<span class="badge bp" style="font-size:.55rem">REZ</span>`}</td><td style="font-size:.91rem;color:var(--txt2)">${s.n}</td><td class="nr mono">${s.a}</td><td class="nr mono">${s.d}</td><td><div class="wsk-pct"><div class="wsk-pct-bar"><div class="wsk-pct-fill" style="width:${Math.min(100,s.p)}%;background:${c}"></div></div><span style="font-family:var(--mono);font-size:1.05rem;color:${c}">${s.p}%</span></div></td></tr>`;}).join("");
+    return`<div class="proj-metric">
+      <div class="pm-hdr" onclick="this.nextElementSibling.classList.toggle('on')">
+        <div><div class="pm-nr">${nr}</div><div class="pm-name">${clamp(u.beneficjent||"—",55)}</div></div>
+        <div class="pm-badges">
+          ${w.zakoncz?`<span class="badge bgr">ZAKOŃCZONY</span>`:""}
+          <span class="badge" style="background:${colA}18;color:${colA};border:1px solid ${colA}40">Śr. ${avgA!=null?avgA+"%-":"—"}</span>
+          <span class="badge bgr">${opk}</span>
+        </div>
+      </div>
+      <div class="pm-body">
+        <div class="pm-grid">
+          <div class="pm-kpi"><div class="pm-kpi-l">Śr. realizacja ogólna</div><div class="pm-kpi-v" style="color:${colA}">${avgA!=null?avgA+"%":"—"}</div></div>
+          <div class="pm-kpi"><div class="pm-kpi-l">Wskaźniki produktu</div><div class="pm-kpi-v" style="color:${pctColor(avgP||0)}">${avgP!=null?avgP+"%":"—"} <span style="font-size:.81rem;color:var(--txt3)">(${w.cnt_prod})</span></div></div>
+          <div class="pm-kpi"><div class="pm-kpi-l">Wskaźniki rezultatu</div><div class="pm-kpi-v" style="color:${pctColor(avgR||0)}">${avgR!=null?avgR+"%":"—"} <span style="font-size:.81rem;color:var(--txt3)">(${w.cnt_rez})</span></div></div>
+        </div>
+        <div class="pm-section"><div class="pm-sec-t">Wskaźniki <span style="color:var(--txt3);font-size:.92rem;text-transform:none;font-weight:400">(${wsks.length} z ${(w.wskazniki||[]).length})</span></div>
+        <div class="of"><table class="wsk-tbl"><thead><tr><th>Typ</th><th>Nazwa wskaźnika</th><th class="nr">Osiągnięto</th><th class="nr">Cel</th><th>Realizacja</th></tr></thead><tbody>${wskRows||"<tr><td colspan='5' class='empty'>Brak wskaźników</td></tr>"}</tbody></table></div></div>
+      </div>
+    </div>`;}).join("")||"<div class='empty'>Brak projektów z danymi wskaźnikowymi</div>";
+  renderPager("pg-rzeczowy",pg,Math.ceil(entries.length/12),p=>renderRzeczowy(p));
+}
+
+// ─── HARMONOGRAMY ───
+function buildHp(){renderHWer();renderHZat();buildSimProj();}
+function showHpTab(el,id){["h-wer","h-zat","h-sim"].forEach(t=>document.getElementById(t).classList.add("hidden"));document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));document.getElementById(id).classList.remove("hidden");el.classList.add("on");}
+function renderHWer(pg=1){const srch=document.getElementById("fhw-s").value.toLowerCase(),dz=document.getElementById("fhw-dz").value;let f=RAW.hp_wer.filter(r=>{const op=(RAW.arpk_map[r["Numer projektu"]]||{}).opiekun||"";if(dz&&!dzialFilter(op,dz))return false;return!srch||`${r["Numer projektu"]} ${r["Beneficjent Nazwa"]}`.toLowerCase().includes(srch);});document.getElementById("kpi-hwer").innerHTML=`<div class="kpi b"><div class="kpi-l">HP w weryfikacji</div><div class="kpi-v">${f.length}</div></div><div class="kpi c"><div class="kpi-l">Wyd.kwal.</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r["Wydatki kwalifikowalne"]||0),0))}</div></div><div class="kpi y"><div class="kpi-l">Przekroczone 5 dni</div><div class="kpi-v">${f.filter(r=>(wdSince(r["Data przesłania"])||0)>5).length}</div></div>`;document.getElementById("info-hwer").textContent=`${f.length} HP`;const PP=20,sl=f.slice((pg-1)*PP,pg*PP);document.getElementById("tb-hwer").innerHTML=sl.map(r=>{const wd=wdSince(r["Data przesłania"])||0;const late=wd>5;return`<tr><td class="mono" style="font-size:.92rem">${r["Numer projektu"]}</td><td><div class="clamp">${clamp(r["Beneficjent Nazwa"],26)}</div></td><td style="text-align:center"><span class="badge bc">${r["Numer wersji harmonogramu"]||"—"}</span></td><td>${badge(r["Status"]||"—")}</td><td class="mono">${fmtD(r["Data przesłania"])}</td><td style="text-align:center;font-family:var(--mono);font-size:.91rem;color:${late?"var(--red)":"var(--grn)"};font-weight:${late?700:400}">${wd}${late?" ⚠":""}</td><td class="nr mono">${fmtK(r["Wydatki kwalifikowalne"])}</td><td class="nr mono">${fmtK(r["Zaliczka"])}</td><td class="nr mono">${fmtK(r["Refundacja"])}</td></tr>`;}).join("")||"<tr><td colspan='9' class='empty'>Brak danych</td></tr>";renderPager("pg-hwer",pg,Math.ceil(f.length/PP),p=>renderHWer(p));}
+function renderHZat(pg=1){const srch=document.getElementById("fhz-s").value.toLowerCase(),dz=document.getElementById("fhz-dz").value;let f=RAW.hp_zat.filter(r=>{const op=(RAW.arpk_map[r["Numer projektu"]]||{}).opiekun||"";if(dz&&!dzialFilter(op,dz))return false;return!srch||`${r["Numer projektu"]} ${r["Beneficjent Nazwa"]}`.toLowerCase().includes(srch);});document.getElementById("kpi-hzat").innerHTML=`<div class="kpi g"><div class="kpi-l">HP zatwierdzonych</div><div class="kpi-v">${f.length}</div></div><div class="kpi b"><div class="kpi-l">Wyd.kwal.</div><div class="kpi-v" style="font-size:.96rem">${fmtK(f.reduce((s,r)=>s+(r["Wydatki kwalifikowalne"]||0),0))}</div></div>`;document.getElementById("info-hzat").textContent=`${f.length} HP`;const PP=25,sl=f.slice((pg-1)*PP,pg*PP);document.getElementById("tb-hzat").innerHTML=sl.map(r=>`<tr><td class="mono" style="font-size:.92rem">${r["Numer projektu"]}</td><td><div class="clamp">${clamp(r["Beneficjent Nazwa"],26)}</div></td><td style="text-align:center"><span class="badge bg">${r["Numer wersji harmonogramu"]||"—"}</span></td><td class="mono">${fmtD(r["Data przesłania"])}</td><td class="mono">${fmtD(r["Data zatwierdzenia"])}</td><td class="nr mono">${fmtK(r["Wydatki kwalifikowalne"])}</td><td class="nr mono">${fmtK(r["Zaliczka"])}</td><td class="nr mono">${fmtK(r["Refundacja"])}</td></tr>`).join("")||"<tr><td colspan='8' class='empty'>Brak danych</td></tr>";renderPager("pg-hzat",pg,Math.ceil(f.length/PP),p=>renderHZat(p));}
+function buildSimProj(){const nrs=[...new Set(RAW.zat.map(r=>r.nr_proj))].sort();document.getElementById("sim-proj").innerHTML=nrs.map(nr=>{const u=RAW.umowy.find(u=>u.nr===nr)||{};return`<option value="${nr}">${nr} – ${clamp(u.beneficjent||"",34)}</option>`;}).join("");if(nrs.length)runSim();}
+function runSim(){const nr=document.getElementById("sim-proj").value;const pw=RAW.zat.filter(r=>r.nr_proj===nr&&r.data_zatw).sort((a,b)=>a.data_zatw.localeCompare(b.data_zatw));const out=document.getElementById("sim-out");if(pw.length<2){out.innerHTML="<div class='empty'>Za mało zatwierdzonych WNP (min. 2)</div>";return;}const intervals=[];for(let i=1;i<pw.length;i++){const a=new Date(pw[i-1].data_zatw),b=new Date(pw[i].data_zatw);intervals.push((b-a)/86400000);}const avgInt=intervals.reduce((s,v)=>s+v,0)/intervals.length;const u=RAW.umowy.find(u=>u.nr===nr)||{};const endD=u.do?new Date(u.do):new Date(NOW.getFullYear()+2,0);const future=[];let d=new Date(pw[pw.length-1].data_zatw);for(let i=0;i<6;i++){d=new Date(d.getTime()+avgInt*86400000);if(d>endD)break;future.push(new Date(d));}out.innerHTML=`<div class="alert ai">Projekt <b>${nr}</b> · Śr. odstęp między WNP: <b>${Math.round(avgInt)} dni</b> · Podstawa: ${pw.length} WNP</div><div style="font-size:.81rem;color:var(--txt3);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px">Historia zatwierdzonych WNP</div><div class="mpills">${pw.map((r,i)=>`<span class="mp on" style="cursor:default">WNP ${i+1} · ${fmtD(r.data_zatw)}</span>`).join("")}</div><div style="font-size:.81rem;color:var(--txt3);margin:11px 0 7px;text-transform:uppercase;letter-spacing:.5px">Prognozowane terminy (${future.length})</div><div class="mpills">${future.map((fd,i)=>`<span class="mp" style="cursor:default;border-color:var(--acc2);color:var(--acc2)">WNP ${pw.length+i+1} · ${fd.toLocaleDateString("pl-PL")}</span>`).join("")}</div>`;}
+
+// ─── OPIEKUNOWIE ───
+let curOp=null;
+function buildOpGrid(){
+  if(!RAW.op_stats||typeof RAW.op_stats!=="object")return;
+  const srch=document.getElementById("fop-s").value.toLowerCase(),dz=document.getElementById("fop-dz").value;
+  const ops=Object.entries(RAW.op_stats).filter(([op])=>{if(dz&&!dzialFilter(op,dz))return false;return!srch||op.toLowerCase().includes(srch)||opName(op).toLowerCase().includes(srch);});
+  document.getElementById("op-grid").innerHTML=ops.map(([op,st])=>{const dept=CFG.opDzial[op];const opoC=RAW.postep.filter(p=>p.opiekun===op&&p.opozniony).length;const inf=opFullInfo(op);return`<div class="opcard" onclick="openOpDetail('${op}')"><div class="opcard-nm">${inf.name!==op?inf.name:'◉ '+op}</div>${inf.name!==op?`<div style="font-family:var(--mono);font-size:.75rem;color:var(--txt3);margin-bottom:2px">${op}</div>`:''}<div class="opcard-dz">${dept?"Dział EFS "+dept:inf.dzial||"Nieprzypisany"}</div><div class="op-stats"><div class="opst"><div class="opst-v" style="color:var(--acc)">${st.projekty}</div><div class="opst-l">Proj.</div></div><div class="opst"><div class="opst-v" style="color:var(--red)">${st.w_weryfikacji}</div><div class="opst-l">Wer.</div></div><div class="opst"><div class="opst-v" style="color:var(--yel)">${opoC}</div><div class="opst-l">Opóźn.</div></div><div class="opst"><div class="opst-v" style="font-size:.94rem;color:var(--acc2)">${fmtK(st.budzet)}</div><div class="opst-l">Budżet</div></div></div></div>`;}).join("");
+}
+function openOpDetail(op){curOp=op;document.getElementById("op-grid").classList.add("hidden");document.getElementById("op-detail").classList.remove("hidden");const inf=opFullInfo(op);document.getElementById("op-det-name").innerHTML=inf.name!==op?`${inf.name} <span style="font-family:var(--mono);font-size:.72rem;color:var(--txt3)">${op}</span>`:"◉ "+op;const dept=CFG.opDzial[op]||inf.dzial;document.getElementById("op-det-dz").textContent=dept?"Dział EFS "+dept:"Nieprzypisany";const st=RAW.op_stats[op]||{};const opoC=RAW.postep.filter(p=>p.opiekun===op&&p.opozniony).length;const opWer=RAW.wer.filter(r=>r.opiekun===op);const avgWd=opWer.length?opWer.reduce((s,r)=>s+(wdSince(r.data_zloz)||0),0)/opWer.length:0;const perf=Math.max(0,Math.round(100-avgWd*3));document.getElementById("kpi-op-det").innerHTML=`<div class="kpi b"><div class="kpi-l">Projektów</div><div class="kpi-v">${st.projekty||0}</div></div><div class="kpi r"><div class="kpi-l">W weryfikacji</div><div class="kpi-v">${st.w_weryfikacji||0}</div></div><div class="kpi o"><div class="kpi-l">W poprawie</div><div class="kpi-v">${st.w_poprawie||0}</div></div><div class="kpi y"><div class="kpi-l">Z opóźnieniami</div><div class="kpi-v">${opoC}</div></div><div class="kpi c"><div class="kpi-l">Łączny budżet</div><div class="kpi-v" style="font-size:.96rem">${fmtK(st.budzet)}</div></div><div class="kpi ${perf>=70?"g":perf>=50?"y":"r"}"><div class="kpi-l">Ocena efektywności</div><div class="kpi-v">${perf}/100</div></div>`;document.getElementById("fopd-s").value="";renderOpProj();}
+function renderOpProj(pg=1){
+  const srch=document.getElementById("fopd-s").value.toLowerCase();const st=RAW.op_stats[curOp]||{};let projs=(st.proj_nrs||[]).filter(nr=>{if(!srch)return true;const u=RAW.umowy.find(u=>u.nr===nr)||{};return nr.toLowerCase().includes(srch)||(u.beneficjent||"").toLowerCase().includes(srch);});document.getElementById("info-opd").textContent=`${projs.length} projektów`;
+  const PP=20,sl=projs.slice((pg-1)*PP,pg*PP);
+  document.getElementById("tb-opd").innerHTML=sl.map(nr=>{const u=RAW.umowy.find(u=>u.nr===nr)||{};const lastWnp=RAW.zat.filter(r=>r.nr_proj===nr).sort((a,b)=>(b.data_zatw||"").localeCompare(a.data_zatw||""))[0];const pp=RAW.postep.find(p=>p.nr===nr);const poz=pp&&pp.poziom_fakt!=null?pp.poziom_fakt.toFixed(1)+"%":"—";const w=RAW.wskazniki[nr];const rzecPct=w&&w.avg_all!=null?w.avg_all+"%":"—";const sc=getWeightedScore(RAW.arpk_map[nr]||{});return`<tr onclick="showDetail(${JSON.stringify({nr,...u}).replace(/"/g,"&quot;")})"><td class="mono" style="font-size:.91rem">${nr}</td><td><div class="clamp">${clamp(u.beneficjent||"—",28)}</div></td><td class="nr mono">${fmtK(u.budzet)}</td><td class="mono" style="font-size:.81rem">${lastWnp?clamp(lastWnp.nr_wn,24):"—"}</td><td>${lastWnp?`<span class="badge bg">Zatw.</span>`:"—"}</td><td><div style="display:flex;align-items:center;gap:5px"><div class="prog" style="width:55px"><div class="prog-b" style="width:${Math.min(100,parseFloat(poz)||0)}%;background:var(--grn)"></div></div><span class="mono" style="font-size:.81rem">${poz}</span></div></td><td style="font-family:var(--mono);font-size:.94rem;color:${pctColor(parseFloat(rzecPct)||0)}">${rzecPct}</td><td>${arpkBadge(sc).badge}</td></tr>`;}).join("")||"<tr><td colspan='8' class='empty'>Brak projektów</td></tr>";renderPager("pg-opd",pg,Math.ceil(projs.length/PP),p=>renderOpProj(p));}
+function closeOpDetail(){curOp=null;document.getElementById("op-grid").classList.remove("hidden");document.getElementById("op-detail").classList.add("hidden");}
+
+// ─── aRPK ANALIZA ───
+let chArpkDist,chArpkCat;
+function buildArpk(){const ops=[...new Set(Object.values(RAW.arpk_map).map(v=>v.opiekun).filter(Boolean))].sort();const el=document.getElementById("fa-op");el.innerHTML='<option value="">Wszyscy opiekunowie</option>'+ops.map(o=>'<option value="'+o+'">'+opName(o)+'</option>').join("");buildArpkCatsOverview();renderArpk();}
+function renderArpk(pg=1){
+  const srch=document.getElementById("fa-s").value.toLowerCase(),op=document.getElementById("fa-op").value,lv=document.getElementById("fa-level").value,dz=document.getElementById("fa-dz").value;
+  let entries=Object.entries(RAW.arpk_map).filter(([nr,v])=>{if(!projInScope(nr))return false;if(dz&&!dzialFilter(v.opiekun,dz))return false;if(op&&v.opiekun!==op)return false;const sc=getWeightedScore(v);if(lv&&arpkLevel(sc)!==lv)return false;const u=RAW.umowy.find(u=>u.nr===nr)||{};if(srch&&!`${nr} ${u.beneficjent||""}`.toLowerCase().includes(srch))return false;return true;}).map(([nr,v])=>({nr,...v,sc:getWeightedScore(v),u:RAW.umowy.find(u=>u.nr===nr)||{}}));
+  entries.sort((a,b)=>b.sc-a.sc);
+  const lvlC={niskie:0,srednie:0,wysokie:0,krytyczne:0};entries.forEach(e=>{lvlC[arpkLevel(e.sc)]++;});
+  document.getElementById("kpi-arpk").innerHTML=`<div class="kpi r"><div class="kpi-l">Krytyczne (≥75)</div><div class="kpi-v">${lvlC.krytyczne}</div></div><div class="kpi o"><div class="kpi-l">Wysokie (50-74)</div><div class="kpi-v">${lvlC.wysokie}</div></div><div class="kpi y"><div class="kpi-l">Średnie (25-49)</div><div class="kpi-v">${lvlC.srednie}</div></div><div class="kpi g"><div class="kpi-l">Niskie (0-24)</div><div class="kpi-v">${lvlC.niskie}</div></div><div class="kpi b"><div class="kpi-l">Projektów</div><div class="kpi-v">${entries.length}</div></div>`;
+  buildArpkCatsOverview();
+  if(chArpkDist)chArpkDist.destroy();chArpkDist=new Chart(document.getElementById("ch-arpk-dist"),{type:"doughnut",data:{labels:["Niskie","Średnie","Wysokie","Krytyczne"],datasets:[{data:[lvlC.niskie,lvlC.srednie,lvlC.wysokie,lvlC.krytyczne],backgroundColor:["#10b981","#f59e0b","#fb923c","#f43f5e"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{color:"#7c8db5",font:{size:9},boxWidth:10}}}}});
+  const catT={};ARPK_CATS.forEach(c=>{catT[c.code]=0;});entries.forEach(e=>{const b=e.breakdown||{};catT.R1+=(b.r1_beneficjent||0);catT.R2+=(b.r2_wielkosc||0);catT.R3+=(b.r3_realizatorzy||0);catT.R4+=(b.r4_rzeczowy||0);catT.R5+=(b.r5_rownolegle||0);catT.R6+=(b.r6_wersje||0);catT.R7+=(b.r7_skargi||0);catT.R8+=(b.r8_nieprawidlowosci||0);catT.R9+=(b.r9_odchylenie||0);});
+  if(chArpkCat)chArpkCat.destroy();chArpkCat=new Chart(document.getElementById("ch-arpk-cat"),{type:"bar",data:{labels:ARPK_CATS.map(c=>c.code+" "+c.name.split(" ")[0]),datasets:[{label:"Suma pkt",data:ARPK_CATS.map(c=>catT[c.code]||0),backgroundColor:ARPK_CATS.map(c=>c.col+"80"),borderColor:ARPK_CATS.map(c=>c.col),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:"#4a5578",font:{size:7},maxRotation:35}},y:{ticks:{color:"#7c8db5",font:{size:8}}}},plugins:{legend:{display:false}}}});
+  document.getElementById("info-arpk").textContent=`${entries.length} projektów`;
+  const PP=25,sl=entries.slice((pg-1)*PP,pg*PP);
+  document.getElementById("tb-arpk").innerHTML=sl.map(e=>{const b=e.breakdown||{};const ab=arpkBadge(e.sc);return`<tr onclick="showPage('metryki');setTimeout(()=>{document.getElementById('fm-s').value='${e.nr}';renderMetryki();},50)"><td class="mono" style="font-size:1.05rem">${e.nr}</td><td><div class="clamp">${clamp(e.u.beneficjent||"—",26)}</div></td><td><div class="arpk-bar"><span class="arpk-score" style="color:${arpkColor(e.sc)}">${e.sc}</span><div class="arpk-prog"><div class="arpk-fill" style="width:${e.sc}%;background:${arpkColor(e.sc)}"></div></div></div></td><td>${ab.badge}</td><td class="nr">${b.r1_beneficjent||0}</td><td class="nr">${b.r2_wielkosc||0}</td><td class="nr">${b.r3_realizatorzy||0}</td><td class="nr">${(b.r4_rzeczowy||0).toFixed(1)}</td><td class="nr">${b.r5_rownolegle||0}</td><td class="nr">${b.r6_wersje||0}</td><td class="nr">${b.r8_nieprawidlowosci||0}</td><td class="nr">${b.r9_odchylenie||0}</td><td class="mono">${opName(e.opiekun)}</td><td style="font-size:.71rem;color:var(--txt2)">${arpkAction(e.sc)}</td></tr>`;}).join("")||"<tr><td colspan='14' class='empty'>Brak danych</td></tr>";
+  renderPager("pg-arpk",pg,Math.ceil(entries.length/PP),p=>renderArpk(p));
+}
+
+// ─── METRYKI PROJEKTÓW ───
+function buildMetryki(){const ops=[...new Set(Object.values(RAW.arpk_map).map(v=>v.opiekun).filter(Boolean))].sort();const el=document.getElementById("fm-op");el.innerHTML=`<option value="">Wszyscy opiekunowie</option>`+ops.map(o=>`<option>${o}</option>`).join("");renderMetryki();}
+function renderMetryki(pg=1){
+  const srch=document.getElementById("fm-s").value.toLowerCase(),op=document.getElementById("fm-op").value,lv=document.getElementById("fm-lv").value,dz=document.getElementById("fm-dz").value;
+  let entries=Object.entries(RAW.arpk_map).filter(([nr,v])=>{
+    if(!projInScope(nr))return false;
+    if(dz&&!dzialFilter(v.opiekun,dz))return false;
+    if(op&&v.opiekun!==op)return false;
+    const sc=getWeightedScore(v);if(lv&&arpkLevel(sc)!==lv)return false;
+    const u=RAW.umowy.find(u=>u.nr===nr)||{};
+    if(srch&&!`${nr} ${u.beneficjent||""}`.toLowerCase().includes(srch))return false;
+    return true;
+  }).map(([nr,v])=>{const sc=getWeightedScore(v);return{nr,...v,sc,u:RAW.umowy.find(u=>u.nr===nr)||{},pp:RAW.postep.find(p=>p.nr===nr)||null,wsk:RAW.wskazniki[nr]||null};});
+  entries.sort((a,b)=>b.sc-a.sc);
+  document.getElementById("kpi-metryki").innerHTML=`<div class="kpi b"><div class="kpi-l">Projektów</div><div class="kpi-v">${entries.length}</div></div><div class="kpi r"><div class="kpi-l">Wys. ryzyko</div><div class="kpi-v">${entries.filter(e=>e.sc>=50).length}</div></div><div class="kpi y"><div class="kpi-l">Śr. aRPK</div><div class="kpi-v">${entries.length?Math.round(entries.reduce((s,e)=>s+e.sc,0)/entries.length):0}</div></div><div class="kpi g"><div class="kpi-l">Śr. real. rzecz.</div><div class="kpi-v">${entries.filter(e=>e.wsk&&e.wsk.avg_all!=null).length?Math.round(entries.filter(e=>e.wsk&&e.wsk.avg_all!=null).reduce((s,e)=>s+e.wsk.avg_all,0)/entries.filter(e=>e.wsk&&e.wsk.avg_all!=null).length):0}%</div></div>`;
+  const sl=entries.slice((pg-1)*8,pg*8);
+  document.getElementById("metryki-list").innerHTML=sl.map(({nr,sc,u,pp,wsk,breakdown,opiekun})=>{
+    const ab=arpkBadge(sc);const poz=pp&&pp.poziom_fakt!=null?pp.poziom_fakt.toFixed(1)+"%":"—";const popp=pp&&pp.poziom_plan_proj!=null?pp.poziom_plan_proj.toFixed(1)+"%":"—";const useOd=CFG.postepOd==="umowa";
+    const avgWsk=wsk&&wsk.avg_all!=null?wsk.avg_all+"%":"—";
+    const b=breakdown||{};
+    // Build aRPK category breakdown
+    const catRows=ARPK_CATS.map(c=>{
+      const pts=getCatPts({breakdown:b},c.id);const maxW=W[c.id]||c.maxOrig;const pct=maxW>0?(pts/c.maxOrig)*100:0;const col=pts>=maxW*0.7?"var(--red)":pts>=maxW*0.4?"var(--yel)":"var(--grn)";
+      const stateD=catStateDesc({breakdown:b,nr},c.id,u);
+      return`<div class="arpk-cat-item" style="border-left:3px solid ${c.col}">
+        <div class="arpk-ci-hdr"><span class="arpk-ci-code">${c.code}</span><span class="arpk-ci-name">${c.name}</span><span class="arpk-ci-pts" style="color:${col}">${pts%1===0?pts:pts.toFixed(1)}</span><span class="arpk-ci-max">/ ${maxW}pkt</span></div>
+        <div class="arpk-ci-state">${stateD}</div>
+        <div class="arpk-ci-bar"><div class="arpk-ci-fill" style="width:${Math.min(100,pct)}%;background:${col}"></div></div>
+      </div>`;}).join("");
+    // Fin progress section
+    const finSection=pp?`<div class="pm-kpi"><div class="pm-kpi-l">Realizacja finansowa</div><div class="pm-kpi-v" style="color:${pctColor(pp.poziom_fakt||0)}">${poz}</div></div><div class="pm-kpi"><div class="pm-kpi-l">Plan finansowy</div><div class="pm-kpi-v" style="color:var(--txt2)">${popp}</div></div><div class="pm-kpi"><div class="pm-kpi-l">Odchylenie</div><div class="pm-kpi-v" style="color:${pp.opozniony?"var(--red)":"var(--grn)"}">${pp.odch_proj>=0?"+":""}${pp.odch_proj}pp</div></div>`:
+    `<div class="pm-kpi" style="grid-column:1/-1"><div class="pm-kpi-l">Postęp finansowy</div><div class="pm-kpi-v" style="color:var(--txt3)">Brak danych (projekt ryczałtowy)</div></div>`;
+    const wskSection=wsk?`<div class="pm-kpi"><div class="pm-kpi-l">Śr. real. wskaźników</div><div class="pm-kpi-v" style="color:${pctColor(wsk.avg_all||0)}">${avgWsk}</div></div><div class="pm-kpi"><div class="pm-kpi-l">Wskaźniki produktu</div><div class="pm-kpi-v" style="color:${pctColor(wsk.avg_prod||0)}">${wsk.avg_prod!=null?wsk.avg_prod+"%":"—"} <span style="font-size:.81rem;color:var(--txt3)">(${wsk.cnt_prod})</span></div></div><div class="pm-kpi"><div class="pm-kpi-l">Wskaźniki rezultatu</div><div class="pm-kpi-v" style="color:${pctColor(wsk.avg_rez||0)}">${wsk.avg_rez!=null?wsk.avg_rez+"%":"—"} <span style="font-size:.81rem;color:var(--txt3)">(${wsk.cnt_rez})</span></div></div>`:
+    `<div class="pm-kpi" style="grid-column:1/-1"><div class="pm-kpi-l">Postęp rzeczowy</div><div class="pm-kpi-v" style="color:var(--txt3)">Brak danych wskaźnikowych</div></div>`;
+    return`<div class="proj-metric">
+      <div class="pm-hdr" onclick="this.nextElementSibling.classList.toggle('on')">
+        <div><div class="pm-nr">${nr}</div><div class="pm-name">${clamp(u.beneficjent||"—",55)}</div></div>
+        <div class="pm-badges">${ab.badge}<span class="badge bgr">${opiekun}</span><span class="badge bc">${fmtK(u.budzet)}</span></div>
+      </div>
+      <div class="pm-body">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:11px">
+          <div style="flex:1">
+            <div style="font-size:.92rem;color:var(--txt3);margin-bottom:4px">aRPK SCORE</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:1.8rem;font-weight:700;font-family:var(--mono);color:${arpkColor(sc)}">${sc}</span>
+              ${ab.badge}
+              <div style="flex:1"><div class="prog" style="height:7px"><div class="prog-b" style="width:${sc}%;height:7px;background:${arpkColor(sc)}"></div></div></div>
+            </div>
+            <div style="font-size:.92rem;color:var(--txt2);margin-top:3px">${arpkAction(sc)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:.92rem;color:var(--txt3)">Opiekun</div>
+            <div style="font-family:var(--mono);font-size:.91rem;color:var(--acc2)">${opiekun}</div>
+            <div style="font-size:.92rem;color:var(--txt3);margin-top:4px">Budżet kwal.</div>
+            <div style="font-family:var(--mono);font-size:.96rem">${fmtK(u.budzet)}</div>
+          </div>
+        </div>
+        <div class="pm-section"><div class="pm-sec-t">Realizacja finansowa i rzeczowa</div>
+          <div class="pm-grid">${finSection}${wskSection}</div>
+        </div>
+        <div class="pm-section"><div class="pm-sec-t">Ocena aRPK — pełna analiza kategorii (suma: <span style="color:${arpkColor(sc)};font-family:var(--mono)">${sc}</span> pkt)</div>
+          <div class="arpk-breakdown">${catRows}</div>
+        </div>
+      </div>
+    </div>`;}).join("")||"<div class='empty'>Brak projektów</div>";
+  renderPager("pg-metryki",pg,Math.ceil(entries.length/8),p=>renderMetryki(p));
+}
+
+// ─── MODAL ───
+function showDetail(r){document.getElementById("det-t").textContent=r.nr_proj||r.nr||r["Numer projektu"]||"Szczegóły";const skip=["arpk_bd","zadania","proj_nrs","breakdown","u","wsk","pp","wskazniki"];const kv=Object.entries(r).filter(([k])=>!skip.includes(k));document.getElementById("det-c").innerHTML=kv.map(([k,v])=>`<div class="dr${String(v||"").length>40?" full":""}"><div class="dk">${k.replace(/_/g," ")}</div><div class="dv">${v==null?"—":typeof v==="number"?fmt(v):String(v)}</div></div>`).join("");document.getElementById("detModal").classList.add("on");}
+function closeModal(){document.getElementById("detModal").classList.remove("on");}
+document.getElementById("detModal").addEventListener("click",e=>{if(e.target===document.getElementById("detModal"))closeModal();});
+
+// ─── EXPORT ───
+function exportCSV(type){
+  let rows=[],hdr=[];
+  if(type==="wer"){hdr=["Nr projektu","Beneficjent","Nr wniosku","Wersja","Status","Data złożenia","Zaliczka","Refundacja","Wyd.kwal.","Dofinansowanie","Wkład własny","Opiekun","aRPK"];rows=RAW.wer.filter(r=>projInScope(r.nr_proj)).map(r=>[r.nr_proj,r.beneficjent,r.nr_wn,r.ver,r.status,r.data_zloz,r.zaliczka,r.refundacja,r.wyd_kwal,r.dofinansowanie,r.wklad_wlasny,opName(r.opiekun),getWeightedScore(RAW.arpk_map[r.nr_proj]||{})]);}
+  else if(type==="pop"){hdr=["Nr projektu","Beneficjent","Nr wniosku","Status","Data złożenia","Wyd.kwal.","Opiekun","aRPK"];rows=RAW.pop.filter(r=>projInScope(r.nr_proj)).map(r=>[r.nr_proj,r.beneficjent,r.nr_wn,r.status,r.data_zloz,r.wyd_kwal,opName(r.opiekun),getWeightedScore(RAW.arpk_map[r.nr_proj]||{})]);}
+  else if(type==="zat"){hdr=["Nr projektu","Beneficjent","Nr wniosku","Data zatw.","Certyfik.","Korekty","Wyd.kwal.","Opiekun"];rows=RAW.zat.filter(r=>projInScope(r.nr_proj)).map(r=>[r.nr_proj,r.beneficjent,r.nr_wn,r.data_zatw,r.certyfikowana,r.korekty,r.wyd_kwal,opName(r.opiekun)]);}
+  else if(type==="rpk"){hdr=["Nr projektu","Beneficjent","Wersji","Wyd.v1","Wyd.ostatnia","Różnica","Różnica %","Opiekun","aRPK"];rows=RAW.rpk.filter(r=>projInScope(r.nr_proj)).map(r=>[r.nr_proj,r.beneficjent,r.ver_count,r.wyd_v1,r.wyd_vl,r.diff,r.diff_pct,opName(r.opiekun),getWeightedScore(RAW.arpk_map[r.nr_proj]||{})]);}
+  else if(type==="arpk"){hdr=["Nr projektu","Beneficjent","aRPK","Poziom","R1","R2","R3","R4","R5","R6","R7","R8","R9","Opiekun","Działanie"];rows=Object.entries(RAW.arpk_map).filter(([nr])=>projInScope(nr)).map(([nr,v])=>{const u=RAW.umowy.find(u=>u.nr===nr)||{};const b=v.breakdown||{};const sc=getWeightedScore(v);return[nr,u.beneficjent||"",sc,arpkLevel(sc),b.r1_beneficjent||0,b.r2_wielkosc||0,b.r3_realizatorzy||0,(b.r4_rzeczowy||0).toFixed(1),b.r5_rownolegle||0,b.r6_wersje||0,b.r7_skargi||0,b.r8_nieprawidlowosci||0,b.r9_odchylenie||0,v.opiekun,arpkAction(sc)];}).sort((a,b)=>b[2]-a[2]);}
+  const csv=[hdr,...rows].map(r=>r.map(v=>v==null?"":String(v).includes(",")?`"${v}"`:v).join(",")).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download=`RBMV_${type}_${NOW.toISOString().slice(0,10)}.csv`;a.click();
+}
+
+// ─── IMPORT ENGINE ───
+const IMP_HISTORY=[];
+let IMP_PENDING=null; // parsed data waiting for apply
+
+// ── SHEET MAPPINGS: sheet name patterns → parser function ──
+const SHEET_PARSERS=[
+  {
+    match: s=>s==='WNP.biezace'||s==='Raport wnioski bieżące'||s==='Raport wnioski złożone',
+    label:'Wnioski bieżące (WER/POP)',
+    parse: parseWnpBiezace
+  },
+  {
+    match: s=>s==='WNP.certyfikowane'||s==='Raport wnioski certyfikowane',
+    label:'Wnioski certyfikowane (ZAT)',
+    parse: parseWnpCert
+  },
+  {
+    match: s=>s==='WNP.wszystkie',
+    label:'Wszystkie wnioski (WER+ZAT+RPK)',
+    parse: parseWnpWszystkie
+  },
+  {
+    match: s=>s==='UDA.umowy'||s==='Raport dane z umów',
+    label:'Umowy projektów',
+    parse: parseUdaUmowy
+  },
+  {
+    match: s=>s==='HP.wszystkie'||s==='Raport HP',
+    label:'Harmonogramy płatności',
+    parse: parseHp
+  },
+  {
+    match: s=>s==='WNP.wskazniki',
+    label:'Wskaźniki projektów',
+    parse: parseWskazniki
+  },
+  {
+    match: s=>s==='WNP.zad.rozliczone'||s==='UDA.zad.rozliczenie'||s==='Rozliczenie zadań',
+    label:'Rozliczenie zadań',
+    parse: parseZadania
+  },
+  {
+    match: s=>s==='Raport rodzaj weryfikacji',
+    label:'Rodzaj weryfikacji (opiekunowie)',
+    parse: parseRodzajWeryfikacji
+  },
+];
+
+// ── COL FINDER: find column by multiple possible names ──
+function col(row, ...names){
+  for(const n of names){if(row[n]!==undefined && row[n]!==null && row[n]!=='') return row[n];}
+  return null;
+}
+function colStr(row,...names){const v=col(row,...names);return v!=null?String(v).trim():null;}
+function colNum(row,...names){const v=col(row,...names);if(v==null)return null;const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n;}
+function colDate(row,...names){
+  const v=col(row,...names);if(!v)return null;
+  if(v instanceof Date){const y=v.getFullYear(),m=String(v.getMonth()+1).padStart(2,'0'),d=String(v.getDate()).padStart(2,'0');return`${y}-${m}-${d}`;}
+  const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  // Excel serial
+  if(!isNaN(v)){const d=new Date(Math.round((+v-25569)*86400000));return d.toISOString().slice(0,10);}
+  return null;
+}
+function projKey(row,...names){
+  const v=colStr(row,...names);if(!v)return null;
+  // Normalize: extract base project number
+  const m=v.match(/(FEDS\.\d+\.\d+-IZ\.00-\d+\/\d{2})/i);
+  return m?m[1]:v;
+}
+function wnToProj(wn){
+  if(!wn)return null;
+  const m=String(wn).match(/(FEDS\.\d+\.\d+-IZ\.00-\d+\/\d{2})/i);
+  return m?m[1]:null;
+}
+
+// ── PARSERS ──
+function parseWnpBiezace(rows,log){
+  const wer=[],pop=[];
+  const WER_ST=new Set(['Złożony','W trakcie weryfikacji','Przesłany do weryfikacji']);
+  const POP_ST=new Set(['Do poprawy','Poprawiany','Poprawiony','Do korekty','Korygowany']);
+  const SKIP_ST=new Set(['Zatwierdzony','Zatwierdzono','Wycofany','Anulowany','Odrzucony']);
+  let ok=0,skip=0;
+  for(const r of rows){
+    const nr_proj=projKey(r,'Numer projektu');if(!nr_proj){skip++;continue;}
+    const nr_wn=colStr(r,'Numer wniosku','Numer wniosku o płatność/korekty');
+    const status=colStr(r,'Status wniosku','Status weryfikacji','Status');
+    if(SKIP_ST.has(status)){skip++;continue;} // already approved, skip
+    // Version from wniosek number suffix
+    const verMatch=nr_wn&&nr_wn.match(/-0*(\d+)$/);const ver=verMatch?parseInt(verMatch[1]):1;
+    // Date: use Data złożenia for submission date
+    const data_zloz=colDate(r,'Data złożenia','Data przesłania')||null;
+    const base={
+      nr_proj,
+      beneficjent:colStr(r,'Nazwa Beneficjenta','Beneficjent Nazwa','Beneficjent')||'',
+      nr_wn,ver,status,data_zloz,
+      zaliczka:colNum(r,'Zaliczka')||0,
+      refundacja:colNum(r,'Refundacja')||0,
+      wyd_kwal:colNum(r,'Wydatki kwalifikowalne')||0,
+      dofinansowanie:colNum(r,'Dofinansowanie')||0,
+      wklad_wlasny:colNum(r,'Razem wkład własny - Wydatki kwalifikowalne')||0,
+      opiekun:colStr(r,'Osoba odpowiedzialna za weryfikację')||
+               colStr(r,'Opiekun')||
+               (RAW.arpk_map[nr_proj]||{}).opiekun||'',
+      arpk:(RAW.arpk_map[nr_proj]||{}).score||0,
+    };
+    if(POP_ST.has(status))pop.push(base);
+    else wer.push(base); // WER_ST + unknown active statuses
+    ok++;
+  }
+  log(`  ✓ Wnioski bieżące: ${wer.length} w weryfikacji, ${pop.length} w poprawie, ${skip} pominiętych`);
+  return{wer,pop};
+}
+
+function parseWnpCert(rows,log){
+  const zat=[];let ok=0,skip=0;
+  for(const r of rows){
+    const nr_proj=projKey(r,'Numer projektu','nr_proj');if(!nr_proj){skip++;continue;}
+    const nr_wn=colStr(r,'Numer wniosku o płatność/korekty','Numer wniosku','nr_wn');
+    const data_zatw=colDate(r,'Data zatwierdzenia wniosku','Data zatwierdzenia weryfikacji','data_zatw');
+    const miesiac=data_zatw?data_zatw.slice(0,7):null;
+    zat.push({
+      nr_proj,beneficjent:colStr(r,'Beneficjent Nazwa','Nazwa Beneficjenta','beneficjent')||'',
+      nr_wn,data_zatw,miesiac,
+      wyd_kwal:colNum(r,'Wydatki kwalifikowalne WOP','Wydatki kwalifikowalne','wyd_kwal')||0,
+      wyd_uznane:colNum(r,'Wydatki uznane za kwalifikowalne WOP','wyd_uznane')||0,
+      dofinansowanie:colNum(r,'Dofinansowanie WOP','Dofinansowanie','dofinansowanie')||0,
+      zaliczka:colNum(r,'Kwota udzielonej zaliczki WOP','Zaliczka','zaliczka')||0,
+      refundacja:colNum(r,'Kwota refundacji WOP','Refundacja','refundacja')||0,
+      korekty:0,
+      certyfikowana:colStr(r,'Certyfikowana','certyfikowana')||'N',
+      opiekun:colStr(r,'Osoba odpowiedzialna za weryfikację','opiekun')||'',
+      arpk:(RAW.arpk_map[nr_proj]||{}).score||0,
+    });ok++;
+  }
+  log(`  ✓ Wnioski certyfikowane: ${ok} przetworzonych, ${skip} pominiętych`);
+  return{zat};
+}
+
+function parseWnpWszystkie(rows,log){
+  // Similar to biezace + cert combined - build wer, pop, zat, rpk
+  const all=parseWnpBiezace(rows.filter(r=>!colDate(r,'Data zatwierdzenia weryfikacji','data_zatw')),log);
+  const cert=parseWnpCert(rows.filter(r=>colDate(r,'Data zatwierdzenia weryfikacji','data_zatw')),log);
+  return{...all,...cert};
+}
+
+function parseUdaUmowy(rows,log){
+  const umowy=[];let ok=0,skip=0;
+  for(const r of rows){
+    const nr=projKey(r,'Numer projektu','nr');if(!nr){skip++;continue;}
+    umowy.push({
+      nr,
+      beneficjent:colStr(r,'Beneficjent','Wn/Ben Nazwa','beneficjent')||'',
+      tytu:colStr(r,'Tytuł projektu','tytu')||'',
+      status:colStr(r,'Status projektu','status')||'',
+      od:colDate(r,'Okres realizacji projektu od','od'),
+      do:colDate(r,'Okres realizacji projektu do','do'),
+      data_umowy:colDate(r,'Data podpisania umowy','data_umowy'),
+      budzet:colNum(r,'Suma - Wydatki kwalifikowalne','budzet')||0,
+      dofinansowanie:colNum(r,'Dofinansowanie','dofinansowanie')||0,
+      rzeczywiste:colNum(r,'Rzeczywiście ponoszone - Wydatki kwalifikowalne','rzeczywiste')||0,
+      ryczalt:colNum(r,'Uproszczona metoda rozliczania - Wydatki kwalifikowalne','ryczalt')||0,
+      forma_prawna:colStr(r,'Wn/Ben Forma prawna','forma_prawna')||'',
+      typ_proj:colStr(r,'Typ projektu','typ_proj')||'',
+      rodzaj_proj:colStr(r,'Rodzaj projektu (podmioty/rozliczenie)','rodzaj_proj')||'',
+      ma_umowe:(colStr(r,'Czy umowa (T/N)','ma_umowe')||'N')==='T',
+      opiekun:colStr(r,'Osoba odpowiedzialna za weryfikację','opiekun')||(RAW.umowy.find(u=>u.nr===nr)||{}).opiekun||'',
+    });ok++;
+  }
+  log(`  ✓ Umowy: ${ok} przetworzonych, ${skip} pominiętych`);
+  return{umowy};
+}
+
+function parseHp(rows,log){
+  const hp_wer=[],hp_zat=[];let ok=0;
+  const WER_HP=new Set(['Przesłany','W weryfikacji','Do akceptacji']);
+  for(const r of rows){
+    const nr=projKey(r,'Numer projektu');if(!nr){continue;}
+    const rec={
+      'Numer projektu':nr,
+      'Beneficjent Nazwa':colStr(r,'Beneficjent Nazwa','Beneficjent')||'',
+      'Numer wersji harmonogramu':colNum(r,'Numer wersji harmonogramu')||1,
+      'Status':colStr(r,'Status')||'',
+      'Data przesłania':colDate(r,'Data przesłania'),
+      'Data zatwierdzenia':colDate(r,'Data zatwierdzenia'),
+      'Wydatki kwalifikowalne':colNum(r,'Wydatki kwalifikowalne')||0,
+      'Zaliczka':colNum(r,'Zaliczka')||0,
+      'Refundacja':colNum(r,'Refundacja')||0,
+    };
+    if(WER_HP.has(rec.Status)||!rec['Data zatwierdzenia']) hp_wer.push(rec);
+    else hp_zat.push(rec);
+    ok++;
+  }
+  log(`  ✓ Harmonogramy: ${ok} rekordów (${hp_wer.length} w weryfikacji, ${hp_zat.length} zatwierdzonych)`);
+  return{hp_wer,hp_zat};
+}
+
+function parseWskazniki(rows,log){
+  const wskazniki={};let ok=0,skip=0;
+  for(const r of rows){
+    const nr_wn=colStr(r,'Numer wniosku');
+    const nr=wnToProj(nr_wn)||projKey(r,'Numer projektu');
+    if(!nr){skip++;continue;}
+    if(!wskazniki[nr])wskazniki[nr]={avg_prod:null,avg_rez:null,avg_all:null,cnt_prod:0,cnt_rez:0,zakoncz:false,wskazniki:[],r4_score:null};
+    const tgt=colNum(r,'Wartość docelowa/O')||0;if(tgt<=0)continue;
+    const ach=colNum(r,'Wartość osiągnięta od początku realizacji projektu/O')||0;
+    const pct=Math.min(100,Math.round(ach/tgt*100*10)/10);
+    const rodzaj=colStr(r,'Rodzaj wskaźnika (produktu/rezultatu)')||'';
+    wskazniki[nr].wskazniki.push({
+      n:colStr(r,'Nazwa wskaźnika')||'',
+      r:rodzaj.startsWith('P')?'P':'R',
+      a:ach,d:tgt,p:pct
+    });ok++;
+  }
+  // Compute averages
+  for(const [nr,w] of Object.entries(wskazniki)){
+    const pp=w.wskazniki.filter(s=>s.r==='P');const rr=w.wskazniki.filter(s=>s.r==='R');
+    const avg=arr=>arr.length?Math.round(arr.reduce((s,x)=>s+x.p,0)/arr.length*10)/10:null;
+    w.cnt_prod=pp.length;w.cnt_rez=rr.length;
+    w.avg_prod=avg(pp);w.avg_rez=avg(rr);w.avg_all=avg(w.wskazniki);
+    w.r4_score=w.avg_all!=null?Math.min(50,Math.round(w.avg_all/100*50*10)/10):null;
+  }
+  log(`  ✓ Wskaźniki: ${ok} wartości, ${Object.keys(wskazniki).length} projektów`);
+  return{wskazniki};
+}
+
+function parseZadania(rows,log){
+  const zadMap={};let ok=0;
+  for(const r of rows){
+    const nr=projKey(r,'Numer projektu');if(!nr)continue;
+    if(!zadMap[nr])zadMap[nr]=[];
+    zadMap[nr].push({
+      nr_zad:colNum(r,'Numer zadania')||null,
+      nazwa:colStr(r,'Nazwa zadania')||'',
+      od:colDate(r,'Data rozpoczęcia realizacji zadania'),
+      do:colDate(r,'Data zakończenia realizacji zadania'),
+      kwal:colNum(r,'Kwalifikowalne','Kwalifikowalne PBD','Kwalifikowalne PBD - bez dzielnika')||0,
+      real_pct:colNum(r,'Kwalifikowalne PBD % realizacji','Ogółem PBD % realizacji')||0,
+      data_umowy:colDate(r,'Data podpisania umowy'),
+    });ok++;
+  }
+  log(`  ✓ Zadania: ${ok} rekordów, ${Object.keys(zadMap).length} projektów`);
+  return{zadania:zadMap};
+}
+
+function parseRodzajWeryfikacji(rows,log){
+  // Maps wniosek number -> opiekun login
+  const opMap={};let ok=0;
+  for(const r of rows){
+    const nr_proj=projKey(r,'Numer projektu');
+    const op=colStr(r,'Osoba odpowiedzialna za weryfikację');
+    if(nr_proj&&op){opMap[nr_proj]=op;ok++;}
+  }
+  log(`  ✓ Opiekunowie z weryfikacji: ${ok} przypisań`);
+  return{opiekunMap:opMap};
+}
+
+// ── MERGE ENGINE ──
+function mergeImport(parsed,log){
+  const newRAW=JSON.parse(JSON.stringify(RAW)); // deep copy
+  const stats={proj_new:0,proj_upd:0,wnp_new:0,wnp_upd:0,hp_new:0,umowy_new:0,wskazniki_upd:0,zadania_upd:0};
+
+  // OPIEKUN MAP — assign from rodzaj weryfikacji
+  if(parsed.opiekunMap){
+    for(const [nr,op] of Object.entries(parsed.opiekunMap)){
+      const u=newRAW.umowy.find(u=>u.nr===nr);
+      if(u&&!u.opiekun)u.opiekun=op;
+      if(newRAW.arpk_map[nr]&&!newRAW.arpk_map[nr].opiekun)newRAW.arpk_map[nr].opiekun=op;
+    }
+    log(`  → Przypisano opiekunów: ${Object.keys(parsed.opiekunMap).length} projektów`);
+  }
+
+  // UMOWY
+  if(parsed.umowy){
+    for(const u of parsed.umowy){
+      const idx=newRAW.umowy.findIndex(x=>x.nr===u.nr);
+      if(idx>=0){
+        // Preserve opiekun if existing has one and new doesn't
+        if(!u.opiekun&&newRAW.umowy[idx].opiekun)u.opiekun=newRAW.umowy[idx].opiekun;
+        newRAW.umowy[idx]={...newRAW.umowy[idx],...u};stats.proj_upd++;
+      } else {
+        newRAW.umowy.push(u);stats.proj_new++;
+        if(!newRAW.arpk_map[u.nr])newRAW.arpk_map[u.nr]={score:0,breakdown:{},opiekun:u.opiekun||''};
+      }
+    }
+    log(`  → Umowy: +${stats.proj_new} nowych, ${stats.proj_upd} zaktualizowanych`);
+  }
+
+  // WER — full replace from import, but preserve projects not in new file
+  if(parsed.wer&&parsed.wer.length>0){
+    const importedNrs=new Set(parsed.wer.map(r=>r.nr_wn).filter(Boolean));
+    // Keep existing wer entries whose nr_wn is NOT in the import (different project scope)
+    const kept=newRAW.wer.filter(r=>!importedNrs.has(r.nr_wn));
+    newRAW.wer=[...kept,...parsed.wer];
+    stats.wnp_new=parsed.wer.length;
+    log(`  → WER: ${parsed.wer.length} wniosków w bieżącej weryfikacji`);
+  }
+
+  // POP — full replace
+  if(parsed.pop&&parsed.pop.length>0){
+    const importedNrs=new Set(parsed.pop.map(r=>r.nr_wn).filter(Boolean));
+    const kept=newRAW.pop.filter(r=>!importedNrs.has(r.nr_wn));
+    newRAW.pop=[...kept,...parsed.pop];
+    log(`  → POP: ${parsed.pop.length} wniosków w poprawie`);
+  }
+
+  // ZAT — merge/append, remove from wer/pop
+  if(parsed.zat&&parsed.zat.length>0){
+    for(const r of parsed.zat){
+      const idx=newRAW.zat.findIndex(x=>x.nr_wn===r.nr_wn);
+      if(idx>=0)newRAW.zat[idx]={...newRAW.zat[idx],...r};
+      else{newRAW.zat.push(r);stats.wnp_new++;}
+    }
+    const zatNrs=new Set(parsed.zat.map(r=>r.nr_wn).filter(Boolean));
+    const werBefore=newRAW.wer.length;const popBefore=newRAW.pop.length;
+    newRAW.wer=newRAW.wer.filter(r=>!zatNrs.has(r.nr_wn));
+    newRAW.pop=newRAW.pop.filter(r=>!zatNrs.has(r.nr_wn));
+    log(`  → ZAT: ${parsed.zat.length} zatwierdzonych · usunięto z WER: ${werBefore-newRAW.wer.length}, POP: ${popBefore-newRAW.pop.length}`);
+  }
+
+  // HP — full replace hp_wer, merge hp_zat
+  if(parsed.hp_wer){
+    newRAW.hp_wer=parsed.hp_wer;stats.hp_new=parsed.hp_wer.length;
+    log(`  → HP weryfikacja: ${parsed.hp_wer.length} harmonogramów`);
+  }
+  if(parsed.hp_zat){
+    for(const r of parsed.hp_zat){
+      const idx=newRAW.hp_zat.findIndex(x=>x['Numer projektu']===r['Numer projektu']&&x['Numer wersji harmonogramu']===r['Numer wersji harmonogramu']);
+      if(idx>=0)newRAW.hp_zat[idx]=r; else newRAW.hp_zat.push(r);
+    }
+    log(`  → HP zatwierdzone: ${parsed.hp_zat.length} harmonogramów`);
+  }
+
+  // WSKAZNIKI
+  if(parsed.wskazniki){
+    for(const [nr,w] of Object.entries(parsed.wskazniki)){
+      newRAW.wskazniki[nr]={...(newRAW.wskazniki[nr]||{}),...w};
+      if(newRAW.arpk_map[nr]&&w.avg_all!=null&&!w.zakoncz){
+        const r4_risk=Math.round((50-(w.r4_score||0))/50*13*10)/10;
+        newRAW.arpk_map[nr].breakdown.r4_rzeczowy=r4_risk;
+      }
+      stats.wskazniki_upd++;
+    }
+    log(`  → Wskaźniki: ${stats.wskazniki_upd} projektów`);
+  }
+
+  // ZADANIA — full replace per project
+  if(parsed.zadania){
+    if(!newRAW.zadania)newRAW.zadania={};
+    for(const [nr,tasks] of Object.entries(parsed.zadania)){
+      newRAW.zadania[nr]=tasks;stats.zadania_upd++;
+      // Also update postep entry
+      const pp=newRAW.postep.find(p=>p.nr===nr);
+      if(pp)pp.zadania=tasks;
+    }
+    log(`  → Zadania: ${stats.zadania_upd} projektów (${Object.values(parsed.zadania).reduce((s,v)=>s+v.length,0)} zadań)`);
+  }
+
+  // Rebuild op_stats
+  rebuildOpStats(newRAW);
+
+  return{newRAW,stats};
+}
+
+function rebuildOpStats(data){
+  const ops={};
+  for(const u of data.umowy){
+    if(!u.opiekun)continue;
+    if(!ops[u.opiekun])ops[u.opiekun]={projekty:0,proj_nrs:[],w_weryfikacji:0,w_poprawie:0,opoznienia:0,budzet:0,cert_wyd:0,avg_arpk:0};
+    const o=ops[u.opiekun];
+    if(!o.proj_nrs.includes(u.nr)){o.proj_nrs.push(u.nr);o.projekty++;o.budzet+=u.budzet||0;}
+  }
+  for(const r of data.wer){if(r.opiekun&&ops[r.opiekun])ops[r.opiekun].w_weryfikacji++;}
+  for(const r of data.pop){if(r.opiekun&&ops[r.opiekun])ops[r.opiekun].w_poprawie++;}
+  for(const r of data.zat){if(r.opiekun&&ops[r.opiekun])ops[r.opiekun].cert_wyd+=r.wyd_kwal||0;}
+  for(const [op,o] of Object.entries(ops)){
+    const scores=o.proj_nrs.map(nr=>(data.arpk_map[nr]||{}).score||0);
+    o.avg_arpk=scores.length?Math.round(scores.reduce((s,v)=>s+v,0)/scores.length):0;
+  }
+  data.op_stats=ops;
+}
+
+// ── UI HANDLERS ──
+function impDragOver(e){e.preventDefault();document.getElementById('imp-dropzone').classList.add('over');}
+function impDragLeave(e){document.getElementById('imp-dropzone').classList.remove('over');}
+function impDrop(e){e.preventDefault();document.getElementById('imp-dropzone').classList.remove('over');const f=e.dataTransfer.files[0];if(f)impFileSelected(f);}
+
+function impFileSelected(file){
+  if(!file)return;
+  if(!window.XLSX){logImp('<span class="warn">⚠ Biblioteka XLSX nie jest załadowana. Sprawdź połączenie internetowe.</span>');return;}
+  const reader=new FileReader();
+  document.getElementById('imp-prog-wrap').classList.remove('hidden');
+  setImpProg(10,'Wczytywanie pliku…');
+  reader.onload=e=>impProcessXlsx(e.target.result,file.name);
+  reader.readAsArrayBuffer(file);
+}
+
+function setImpProg(pct,lbl){
+  document.getElementById('imp-prog-b').style.width=pct+'%';
+  document.getElementById('imp-prog-lbl').textContent=lbl;
+}
+
+async function impProcessXlsx(buffer,fname){
+  const logLines=[];
+  const log=s=>{logLines.push(s);};
+
+  log(`<span class="info">📂 Plik: ${fname}</span>`);
+  setImpProg(20,'Parsowanie arkuszy…');
+
+  let wb;
+  try{wb=XLSX.read(buffer,{type:'array',cellDates:true});}
+  catch(err){logImp(`<span class="warn">✗ Błąd odczytu pliku: ${err.message}</span>`);setImpProg(0,'');return;}
+
+  const sheets=wb.SheetNames;
+  log(`<span class="info">Znaleziono ${sheets.length} arkuszy: ${sheets.join(', ')}</span>`);
+
+  // Detect & display sheets
+  const detectedSheets=[];
+  const sheetGrid=document.getElementById('imp-sheets-grid');
+  sheetGrid.innerHTML='';
+  document.getElementById('imp-sheets-wrap').classList.remove('hidden');
+
+  let parsed={};
+  let sheetIdx=0;
+
+  for(const sname of sheets){
+    sheetIdx++;
+    setImpProg(20+sheetIdx/sheets.length*50,`Przetwarzam: ${sname}…`);
+
+    const parser=SHEET_PARSERS.find(p=>p.match(sname));
+    const ws=wb.Sheets[sname];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:null,raw:false,dateNF:'yyyy-mm-dd'});
+
+    let status='skip',info=`${rows.length} wierszy · brak mapowania`;
+    if(parser&&rows.length>0){
+      try{
+        const result=parser.parse(rows,log);
+        // Merge result into parsed
+        for(const [k,v] of Object.entries(result)){
+          if(Array.isArray(v)){
+            if(!parsed[k])parsed[k]=[];
+            parsed[k].push(...v);
+          }else if(typeof v==='object'&&v!==null){
+            if(!parsed[k])parsed[k]={};
+            Object.assign(parsed[k],v);
+          }
+        }
+        status='ok';info=`${rows.length} wierszy · ${parser.label}`;
+      }catch(err){status='warn';info=`Błąd: ${err.message}`;log(`<span class="warn">⚠ Błąd w ${sname}: ${err.message}</span>`);}
+    }
+
+    // Card
+    const card=document.createElement('div');
+    card.className=`imp-sheet ${status}`;
+    card.innerHTML=`<div class="imp-sheet-name">${status==='ok'?'✓':status==='warn'?'⚠':'·'} ${sname}</div><div class="imp-sheet-info">${info}</div>`;
+    sheetGrid.appendChild(card);
+  }
+
+  setImpProg(80,'Obliczanie zmian…');
+  await new Promise(r=>setTimeout(r,0));
+
+  // Compute delta
+  const mergeLog=[];
+  const mergeLogFn=s=>mergeLog.push(s);
+  const{newRAW,stats}=mergeImport(parsed,mergeLogFn);
+  IMP_PENDING={newRAW,fname};
+
+  // Count zadania
+  const zadCount=newRAW.zadania?Object.values(newRAW.zadania).reduce((s,v)=>s+v.length,0):0;
+  const zadProj=newRAW.zadania?Object.keys(newRAW.zadania).length:0;
+
+  // Display delta
+  document.getElementById('imp-delta').innerHTML=`
+    <div class="imp-delta-item"><div class="imp-delta-l">Projekty z umową</div><div class="imp-delta-v" style="color:var(--acc)">${newRAW.umowy.filter(u=>u.ma_umowe).length}</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">Nowe projekty</div><div class="imp-delta-v" style="color:var(--grn)">${stats.proj_new>0?'+'+stats.proj_new:'brak'}</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">W weryfikacji</div><div class="imp-delta-v" style="color:var(--red)">${newRAW.wer.length}</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">W poprawie</div><div class="imp-delta-v" style="color:var(--orn)">${newRAW.pop.length}</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">Certyfikowane WNP</div><div class="imp-delta-v" style="color:var(--grn)">${newRAW.zat.length}</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">HP w weryfikacji</div><div class="imp-delta-v" style="color:var(--acc3)">${newRAW.hp_wer.length}</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">Zadania finansowe</div><div class="imp-delta-v" style="color:var(--acc2)">${zadCount} (${zadProj} proj.)</div></div>
+    <div class="imp-delta-item"><div class="imp-delta-l">Proj. ze wskaźnikami</div><div class="imp-delta-v">${Object.keys(newRAW.wskazniki||{}).length}</div></div>
+  `;
+  document.getElementById('imp-prev-file').textContent=fname;
+
+  // Combined log
+  const fullLog=[...logLines,...mergeLog];
+  logImp(fullLog.join('\n'));
+  document.getElementById('imp-preview-wrap').classList.remove('hidden');
+  setImpProg(100,`Gotowe — ${fullLog.filter(l=>l.includes('✓')).length} arkuszy przetworzonych`);
+}
+
+function logImp(html){document.getElementById('imp-log').innerHTML=html;}
+
+function impApply(){
+  if(!IMP_PENDING)return;
+  const{newRAW,fname}=IMP_PENDING;
+
+  // Apply to RAW (in-place replacement of all keys)
+  for(const k of Object.keys(RAW))delete RAW[k];
+  Object.assign(RAW,newRAW);
+
+  // History
+  const zadP=RAW.zadania?Object.keys(RAW.zadania).length:0;
+  IMP_HISTORY.push({fname,ts:new Date().toLocaleString('pl-PL'),wer:RAW.wer.length,pop:RAW.pop.length,zat:RAW.zat.length,umowy:RAW.umowy.filter(u=>u.ma_umowe).length,zadP});
+  document.getElementById('imp-history-list').innerHTML=IMP_HISTORY.map(h=>`<span class="ok">✓ ${h.ts}</span> · ${h.fname} · Projekty: ${h.umowy} · WER: ${h.wer} · POP: ${h.pop} · ZAT: ${h.zat} · Zadania: ${h.zadP} proj.`).join('\n');
+
+  IMP_PENDING=null;
+  impReset();
+  rebuildAll();
+
+  // Flash confirmation
+  const dz=document.getElementById('imp-dropzone');
+  dz.style.borderColor='var(--grn)';
+  dz.querySelector('.imp-drop-t').textContent=`✓ Dane wczytane — ${RAW.umowy.filter(u=>u.ma_umowe).length} projektów, ${RAW.wer.length} WNP w weryfikacji`;
+  setTimeout(()=>{dz.style.borderColor='';dz.querySelector('.imp-drop-t').textContent='Przeciągnij plik XLSX lub kliknij aby wybrać';},4000);
+
+  showPage('overview');
+}
+
+function impReset(){
+  IMP_PENDING=null;
+  document.getElementById('imp-preview-wrap').classList.add('hidden');
+  document.getElementById('imp-sheets-wrap').classList.add('hidden');
+  document.getElementById('imp-prog-wrap').classList.add('hidden');
+  document.getElementById('imp-fileinput').value='';
+  document.getElementById('imp-log').innerHTML='';
+  setImpProg(0,'');
+}
+
+// ─── PERSONEL TAB ───
+function buildPersonelTab(){
+  renderPerList();
+}
+
+function renderPerList(){
+  const entries=Object.values(PERSONEL);
+  const el=document.getElementById("per-list");
+  if(!el)return;
+  if(!entries.length){
+    el.innerHTML=`<div style="color:var(--txt3);font-size:.84rem;text-align:center;padding:14px">Brak wczytanych danych personelu</div>`;
+    return;
+  }
+  // Also sync opDzial from PERSONEL (dział auto-maps to code)
+  el.innerHTML=entries.sort(function(a,b){return(a.nazwisko||'').localeCompare((b.nazwisko||''),'pl');}).map(function(p){
+    var fullName=((p.nazwisko||'')+' '+(p.imie||'')).trim()||p.skrot;
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:6px;align-items:center;background:var(--bg3);border:1px solid var(--brd);border-radius:5px;padding:6px 10px">'
+      +'<span style="font-size:.86rem;font-weight:600">'+fullName+'</span>'
+      +'<span style="font-size:.82rem;color:var(--acc3)">'+(p.dzial||'—')+'</span>'
+      +'<button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.9rem;padding:0" onclick="perDelete(&quot;'+p.skrot+'&quot;)">&#x2715;</button>'
+      +'</div>';
+  }).join('');
+  // Update stats
+  var s=document.getElementById("per-status");
+  if(s)s.textContent=entries.length+" pracowników wczytanych";
+  var sImp=document.getElementById("per-status-imp");
+  if(sImp&&sImp.textContent.indexOf("Wczytywanie")===-1)sImp.textContent=entries.length+" pracowników w słowniku";
+  // Re-render opAssign with names
+  buildOpAssign();
+}
+
+function perFileSelected(file){
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='csv'||ext==='txt'){
+    const reader=new FileReader();
+    reader.onload=e=>perParseCSV(e.target.result,file.name);
+    reader.readAsText(file,'UTF-8');
+  } else if(ext==='xlsx'||ext==='xls'){
+    if(!window.XLSX){alert("Biblioteka XLSX nie jest załadowana");return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      perParseRows(rows,file.name);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+// Obsługa wczytywania pracowników z sekcji Dane
+function perFileSelectedImp(file){
+  if(!file)return;
+  var statusEl=document.getElementById("per-status-imp");
+  if(statusEl)statusEl.textContent="Wczytywanie...";
+  var ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='csv'||ext==='txt'){
+    var reader=new FileReader();
+    reader.onload=function(e){perParseRowsImp(file.name,null,e.target.result);};
+    reader.readAsText(file,'UTF-8');
+  } else if(ext==='xlsx'||ext==='xls'){
+    if(!window.XLSX){alert("Biblioteka XLSX nie jest załadowana");return;}
+    var reader2=new FileReader();
+    reader2.onload=function(e){
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      perParseRowsImp(file.name,rows,null);
+    };
+    reader2.readAsArrayBuffer(file);
+  }
+}
+function perParseRowsImp(fname,rows,csvText){
+  // Jeśli CSV - sparsuj najpierw
+  if(!rows&&csvText){
+    var firstLine=csvText.split('\n')[0];
+    var sep=firstLine.includes(';')?';':',';
+    var lines=csvText.trim().split('\n');
+    var headers=lines[0].split(sep).map(function(h){return h.trim().replace(/^"|"$/g,'');});
+    rows=[];
+    for(var i=1;i<lines.length;i++){
+      var cells=lines[i].split(sep);
+      var obj={};
+      headers.forEach(function(h,j){obj[h]=(cells[j]||'').trim().replace(/^"|"$/g,'');});
+      rows.push(obj);
+    }
+  }
+  // Użyj istniejącej logiki parsowania
+  perParseRows(rows,fname);
+  // Zaktualizuj też status i listę w sekcji Dane
+  var st=document.getElementById("per-status");
+  var stImp=document.getElementById("per-status-imp");
+  if(st&&stImp)stImp.innerHTML=st.innerHTML;
+  renderPerListImp();
+}
+function renderPerListImp(){
+  var el=document.getElementById("per-list-imp");
+  if(!el)return;
+  var entries=Object.values(PERSONEL);
+  if(!entries.length){
+    el.innerHTML='<div style="color:var(--txt3);font-size:.84rem;text-align:center;padding:10px">Brak wczytanych pracowników</div>';
+    return;
+  }
+  el.innerHTML=entries.sort(function(a,b){return (a.nazwisko||'').localeCompare(b.nazwisko||'','pl');}).map(function(p){
+    var fullName=(p.nazwisko+' '+p.imie).trim()||p.skrot;
+    return '<div style="display:grid;grid-template-columns:100px 1fr 1fr 28px;gap:6px;align-items:center;background:var(--bg3);border:1px solid var(--brd);border-radius:5px;padding:5px 10px">'
+      +'<span style="font-family:var(--mono);font-size:.8rem;color:var(--txt3)">'+(p.skrot||'')+'</span>'
+      +'<span style="font-size:.86rem;font-weight:600">'+fullName+'</span>'
+      +'<span style="font-size:.82rem;color:var(--acc3)">'+(p.dzial||'—')+'</span>'
+      +'<button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.9rem;padding:0" onclick="perDelete(&quot;'+p.skrot+'&quot;);renderPerListImp()">&#x2715;</button>'
+      +'</div>';
+  }).join('');
+}
+
+function perParseCSV(text,fname){
+  // Auto-detect separator
+  const firstLine=text.split('\n')[0];
+  const sep=firstLine.includes(';')?';':',';
+  const lines=text.trim().split('\n');
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^["']|["']$/g,'').toLowerCase());
+  const rows=lines.slice(1).map(l=>{
+    const vals=l.split(sep).map(v=>v.trim().replace(/^["']|["']$/g,''));
+    const obj={};headers.forEach((h,i)=>{obj[h]=vals[i]||'';});
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v));
+  perParseRows(rows,fname);
+}
+
+function perParseRows(rows,fname){
+  var added=0,updated=0;
+  // Akceptowane nazwy kolumn - rozszerzone o format z pliku Pracownicy.xlsx
+  var COL_SKROT=['pracownik','skrót','skrot','kod','login','id','username'];
+  var COL_OPIEKUN_FULL=['opiekun']; // Kolumna z pełnym "Nazwisko Imię"
+  var COL_NAZW=['nazwisko','name','last name','last_name'];
+  var COL_IMIE=['imię','imie','first name','first_name'];
+  var COL_DZIAL=['dział','dzial','dział projektów','dept','department','dział proj.','skrót działu','skrot dzialu','dz.'];
+
+  function findCol(row,candidates){
+    var keys=Object.keys(row).map(function(k){return k.toLowerCase().trim();});
+    for(var i=0;i<candidates.length;i++){var idx=keys.indexOf(candidates[i]);if(idx>=0)return Object.keys(row)[idx];}
+    return null;
+  }
+
+  if(!rows.length){
+    document.getElementById("per-status").textContent="Plik jest pusty lub nie udało się go odczytać";
+    return;
+  }
+
+  var sK=findCol(rows[0],COL_SKROT);
+  var opK=findCol(rows[0],COL_OPIEKUN_FULL); // kolumna "Opiekun" z pełnym imieniem
+  var nK=findCol(rows[0],COL_NAZW);
+  var iK=findCol(rows[0],COL_IMIE);
+  var dK=findCol(rows[0],COL_DZIAL);
+
+  if(!sK){
+    document.getElementById("per-status").innerHTML='<span style="color:var(--red)">&#x2717; Nie znaleziono kolumny z loginem pracownika. Oczekiwane nazwy kolumny: Pracownik, Skrót, Login</span>';
+    return;
+  }
+
+  for(var ri=0;ri<rows.length;ri++){
+    var r=rows[ri];
+    var skrot=String(r[sK]||'').trim().toUpperCase();
+    if(!skrot)continue;
+    // Obsługa formatu "Opiekun" = "Nazwisko Imię" (format z Pracownicy.xlsx)
+    var nazwisko='', imie='';
+    if(opK && r[opK]){
+      var parts=String(r[opK]).trim().split(/\s+/);
+      nazwisko=parts[0]||'';
+      imie=parts.slice(1).join(' ')||'';
+    } else {
+      nazwisko=nK?String(r[nK]||'').trim():'';
+      imie=iK?String(r[iK]||'').trim():'';
+    }
+    var dzial=dK?String(r[dK]||'').trim():'';
+    var entry={skrot:skrot, nazwisko:nazwisko, imie:imie, dzial:dzial};
+    if(PERSONEL[skrot])updated++;else added++;
+    PERSONEL[skrot]=entry;
+    if(entry.dzial){
+      var dzCode=dzialToCode(entry.dzial);
+      if(dzCode)CFG.opDzial[skrot]=dzCode;
+    }
+  }
+
+  savePersonel();saveCFG();
+  document.getElementById("per-status").innerHTML='<span style="color:var(--grn)">&#x2713; Wczytano '+fname+': +'+added+' nowych, '+updated+' zaktualizowanych</span>';
+  renderPerList();
+  renderPerListImp();
+  rebuildAll();
+}
+
+function dzialToCode(dzialStr){
+  const s=dzialStr.toLowerCase();
+  if(s.includes('i') && s.includes('dzia') && !s.includes('ii') && !s.includes('iii')) return '1';
+  if(s.includes('ii') && !s.includes('iii')) return '2';
+  if(s.includes('iii') || s.includes('3')) return '3';
+  if(s==='1') return '1';
+  if(s==='2') return '2';
+  if(s==='3') return '3';
+  return null;
+}
+
+function perAddRow(){
+  document.getElementById("per-add-form").style.display="block";
+  document.getElementById("per-f-skrot").focus();
+}
+function perAddManual(){
+  const skrot=document.getElementById("per-f-skrot").value.trim().toUpperCase();
+  const nazwisko=document.getElementById("per-f-nazwisko").value.trim();
+  const imie=document.getElementById("per-f-imie").value.trim();
+  const dzial=document.getElementById("per-f-dzial").value.trim();
+  if(!skrot)return;
+  PERSONEL[skrot]={skrot,nazwisko,imie,dzial};
+  if(dzial){const c=dzialToCode(dzial);if(c)CFG.opDzial[skrot]=c;}
+  savePersonel();saveCFG();
+  document.getElementById("per-add-form").style.display="none";
+  ["per-f-skrot","per-f-nazwisko","per-f-imie","per-f-dzial"].forEach(id=>document.getElementById(id).value="");
+  renderPerList();
+}
+function perDelete(skrot){
+  delete PERSONEL[skrot];
+  savePersonel();
+  renderPerList();
+}
+function perClear(){
+  if(!confirm("Usunąć pracowników dodanych ręcznie? Domyślna lista 27 pracowników zostanie przywrócona."))return;
+  // Zachowaj tylko domyślnych pracowników
+  Object.keys(PERSONEL).forEach(function(k){
+    if(!DEFAULT_PERSONEL[k]) delete PERSONEL[k];
+  });
+  // Przywróć domyślnych
+  Object.assign(PERSONEL, DEFAULT_PERSONEL);
+  savePersonel();
+  renderPerList();
+  renderPerListImp();
+}
+
+// ─── BOOTSTRAP ───
+function rebuildAll(){buildOverview();buildWer();buildPop();buildZat();buildRpk();buildPostep();buildRzeczowy();buildHp();buildOpGrid();buildArpk();buildMetryki();}
+loadWeights();loadPersonel();
+// opDzial sync is now handled inside loadPersonel()
+// Restore saved config values into form controls
+(function syncCfgToForm(){
+  const el=id=>document.getElementById(id);
+  try{
+    if(el("cfg-postep-od"))el("cfg-postep-od").value=CFG.postepOd||"projekt";
+    if(el("cfg-opozn"))el("cfg-opozn").value=CFG.opozn||20;
+    if(el("cfg-d1"))el("cfg-d1").value=CFG.d1||20;
+    if(el("cfg-dn"))el("cfg-dn").value=CFG.dn||15;
+    if(el("cfg-dp"))el("cfg-dp").value=CFG.dp||5;
+    if(el("pop-lim"))el("pop-lim").textContent=CFG.dp||5;
+    // Restore dzial pills
+    if(!CFG.dzialy.has("all")){
+      el("dp-all").classList.remove("on");
+      ["1","2","3"].forEach(x=>{if(CFG.dzialy.has(x))el("dp-"+x).classList.add("on");});
+    }
+    // Update header labels
+    const dzLbl=CFG.dzialy.has("all")?"Wszystkie działy":"Dział EFS "+[...CFG.dzialy].join(", EFS ");
+    if(el("tb-dzial"))el("tb-dzial").textContent=dzLbl;
+    if(el("ov-dzial"))el("ov-dzial").textContent=dzLbl;
+    if(el("postep-od-lbl"))el("postep-od-lbl").textContent=CFG.postepOd==="umowa"?"podpisania umowy":"rozpoczęcia projektu";
+  }catch(e){}
+})();
+buildOpAssign();buildArpkCatEditor();buildPersonelTab();renderPerList();renderPerListImp();rebuildAll();
+
+// ══════════════════════════════════════════════════
+// v10 — Zapisz stan / Wyczyść dane / Toast
+// ══════════════════════════════════════════════════
+
+function clearData(){
+  if(!confirm('Wyczyścić wszystkie wczytane dane?\nKod, konfiguracja i lista pracowników pozostaną.'))return;
+  RAW.wer=[];RAW.pop=[];RAW.zat=[];RAW.rpk=[];
+  RAW.arpk=[];RAW.arpk_map={};RAW.hp=[];
+  RAW.hp_wer=[];RAW.hp_zat=[];RAW.postep=[];
+  RAW.rzeczowy=[];RAW.metryki=[];RAW.umowy=[];
+  RAW.wskazniki=[];RAW.zadania={};RAW.op_stats={};
+  rebuildAll();
+  showToast('Dane wyczyszczone ✓');
+}
+
+function saveState(){
+  showToast('Generuję plik…');
+  setTimeout(()=>{
+    try{
+      const rawJson=JSON.stringify(RAW);
+      const perJson=JSON.stringify(PERSONEL);
+      let src=document.documentElement.outerHTML;
+      src=src.replace(
+        /const RAW=\{"wer":\[\],"pop":\[\],"zat":\[\],"rpk":\[\],"arpk":\[\],"arpk_map":\{\},"hp":\[\],"hp_wer":\[\],"hp_zat":\[\],"postep":\[\],"rzeczowy":\[\],"metryki":\[\],"umowy":\[\],"wskazniki":\[\],"zadania":\{\},"op_stats":\{\}\};/,
+        'const RAW='+rawJson+';'
+      );
+      src=src.replace(
+        /DEFAULT_PERSONEL=\{[\s\S]*?\};(?=\s*const PERSONEL)/,
+        'DEFAULT_PERSONEL='+perJson+';'
+      );
+      const ts=new Date().toISOString().slice(0,16).replace('T','_').replace(/:/g,'');
+      const fname='dashboard_wnp_'+ts+'.html';
+      const blob=new Blob(['<!DOCTYPE html>\n'+src],{type:'text/html;charset=utf-8'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=fname;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      showToast('Zapisano: '+fname+' ✓');
+    }catch(e){
+      showToast('Błąd zapisu: '+e.message);
+      console.error('saveState error:',e);
+    }
+  },50);
+}
+
+function showToast(msg,dur){
+  dur=dur||2800;
+  let t=document.getElementById('_toast');
+  if(!t){
+    t=document.createElement('div');t.id='_toast';
+    t.style.cssText='position:fixed;bottom:1.5rem;right:1.5rem;background:var(--acc);color:#fff;padding:.65rem 1.3rem;border-radius:9px;font-size:.9rem;font-weight:600;z-index:99999;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.style.opacity='0',dur);
+}
+</script>
+</body>
+</html>
